@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  fastapi-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: image_analysis-fastapi
+    container_name: image_analysis-fastapi
+    restart: unless-stopped
+    depends_on:
+      - postgres-service
+    ports:
+      - "8000:8000"
+    networks:
+      - image-analysis
+    volumes:
+      - ".:/usr/srv"
+
+  postgres-service:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: image_analysis
+      POSTGRES_USER: image_analysis
+      POSTGRES_DB: image_analysis
+    ports:
+      - '5959:5432'
+    networks:
+      - image-analysis
+    volumes:
+      - image_analysis_postgres_data:/var/lib/postgres
+
+  pgadmin4-service:
+    image: dpage/pgadmin4
+    ports:
+      - '5060:5050'
+      - '96:80'
+    links:
+      - postgres-service:postgres-service
+    depends_on:
+      - postgres-service
+    environment:
+      PGADMIN_DEFAULT_EMAIL: imageAnalysis@imageAnalysis.net
+      PGADMIN_DEFAULT_PASSWORD: imageAnalysis
+    networks:
+      - image-analysis
+
+
+networks:
+  image-analysis:
+volumes:
+  image_analysis_postgres_data:
+    external: true
