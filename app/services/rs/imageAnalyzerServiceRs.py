@@ -2,6 +2,7 @@ from app.managements import prefixs
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 from fastapi.responses import StreamingResponse, Response
 import logging
+
 from app.models.requests import analyzeRequests
 from app.CNN.frameAnalyzer import analyze
 from utils.FileUtils import FileUtils
@@ -61,7 +62,7 @@ async def analyze_images(
         with open(video_name, mode="rb") as file_like:
             yield from file_like  # Invio del contenuto del file come stream
     response = StreamingResponse(iterfile(), media_type=file2.content_type)
-    response.headers['Content-Disposition'] = f'attachment; filename="{video_name}"'
+    response.headers['Content-Disposition'] = f'attachment; filename="{video_name.split("/")[-1]}"'
     response.headers['X-similar'] = str(similar).lower() 
     return response
 

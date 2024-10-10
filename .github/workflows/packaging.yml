@@ -1,0 +1,44 @@
+name: FastAPI & Docker & Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build Docker Image, Tag, and Deploy FastAPI
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
+    - name: Bump Version and Push Tag
+      id: tag_version
+      uses: mathieudutour/github-tag-action@v6.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        default_bump: patch
+        tag_prefix: ""
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker Image
+      run: |
+        docker build -t video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} .
+        docker tag video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} video_analysis-fastapi:latest
+
+    - name: Push Docker Image to GitHub Packages
+      run: |
+        docker push video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
+        docker push video_analysis-fastapi:latest
+
+    - name: Deploy Application with Docker Compose
+      run: |
+        docker-compose down
+        docker-compose up -d
