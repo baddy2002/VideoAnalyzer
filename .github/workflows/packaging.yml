@@ -29,15 +29,13 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Build Docker Image
-      run: |
-        docker build -t video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} .
-        docker tag video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} video_analysis-fastapi:latest
-
-    - name: Push Docker Image to GitHub Packages
-      run: |
-        docker push video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
-        docker push video_analysis-fastapi:latest
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: ./Client
+        file: ./Client/Docker/Dockerfile.linux
+        tags: ghcr.io/${{ github.repository_owner }}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
+        push: true
 
     - name: Deploy Application with Docker Compose
       run: |
