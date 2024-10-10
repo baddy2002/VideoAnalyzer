@@ -38,13 +38,15 @@ jobs:
 
     - name: Build Docker Image
       run: |
-        docker build -t ghcr.io/${{ github.repository }}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} .
-        docker tag ghcr.io/${{ github.repository }}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} ghcr.io/${{ github.repository }}/video_analysis-fastapi:latest
+        repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        docker build -t ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} .
+        docker tag ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
 
     - name: Push Docker Image to GitHub Packages
       run: |
-        docker push ghcr.io/${{ github.repository }}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
-        docker push ghcr.io/${{ github.repository }}/video_analysis-fastapi:latest
+        repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
+        docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
 
     - name: Deploy Application with Docker Compose
       run: |
