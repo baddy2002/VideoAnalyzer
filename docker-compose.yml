@@ -27,8 +27,6 @@ services:
       - '5959:5432'
     networks:
       - video-analysis
-    volumes:
-      - video_analysis_postgres_data:/var/lib/postgres
 
   pgadmin4-service:
     image: dpage/pgadmin4
@@ -48,6 +46,3 @@ services:
 
 networks:
   video-analysis:
-volumes:
-  video_analysis_postgres_data:
-    external: true
