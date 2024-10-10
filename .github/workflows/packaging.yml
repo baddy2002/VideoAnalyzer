@@ -9,8 +9,9 @@ jobs:
   build:
     name: Build Docker Image, Tag, and Deploy FastAPI
     runs-on: ubuntu-latest
-    permissions: write-all
-
+    permissions: 
+      packages: write  # Questo consente di fare il push sui pacchetti
+      contents: read   # Questo permette di leggere il contenuto del repository
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
