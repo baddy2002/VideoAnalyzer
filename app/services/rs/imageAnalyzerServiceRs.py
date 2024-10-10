@@ -1,16 +1,17 @@
 from app.managements import prefixs
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
+from fastapi.responses import StreamingResponse, Response
+import logging
 from app.models.requests import analyzeRequests
 from app.CNN.frameAnalyzer import analyze
-from fastapi.responses import StreamingResponse
-import logging
 from utils.FileUtils import FileUtils
+import os
 
 logger = logging.getLogger(__name__)
 
 image_analysis_router = APIRouter(
     prefix=prefixs.analyze_prefix,
-    tags=["Image confrontation"],
+    tags=["Video confrontation"],
     responses={404: {"description": "Not found"}},
 )
 
@@ -21,7 +22,7 @@ async def analyze_images(
     file1: UploadFile = File(...),
     file2: UploadFile = File(...),
 ):
-    # Carica i dati JSON nei modelli
+# Carica i dati JSON nei modelli
     try:
         area_data = analyzeRequests.Area.parse_raw(area)
         portions_data = analyzeRequests.Portions.parse_raw(portions)
@@ -48,10 +49,20 @@ async def analyze_images(
          
     extension1 = await FileUtils.get_extension_from_mime(extension1)
     extension2 = await FileUtils.get_extension_from_mime(extension2)
+    logger.info("...begin...")
+    similar, video_name = await analyze.analyze_video_frames(file1, file2, extension1, extension2, area_data.dict(), portions_data.dict())
+    logger.info("...end...")
+    # Controlla se il video esiste
+    if not os.path.exists(video_name):
+        return Response(content="Video not found", status_code=404)
     
-    similar, stream1, stream2 = await analyze.single_frame_confrontation(file1, file2, extension1, extension2, area_data.dict(), portions_data.dict())
-    response = StreamingResponse(stream2, media_type=file2.content_type)
-    response.headers['Content-Disposition'] = f'attachment; filename="{file2.filename}"'
+    # Funzione per leggere il video a blocchi
+    def iterfile():
+        with open(video_name, mode="rb") as file_like:
+            yield from file_like  # Invio del contenuto del file come stream
+    response = StreamingResponse(iterfile(), media_type=file2.content_type)
+    response.headers['Content-Disposition'] = f'attachment; filename="{video_name}"'
     response.headers['X-similar'] = str(similar).lower() 
     return response
+
 

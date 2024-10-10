@@ -26,5 +26,27 @@ class FileUtils:
             return ".png"
         elif "webp" in mime_type or "Web/P" in mime_type:
             return ".webp"
-        # Aggiungi ulteriori tipi MIME se necessario
+        # Aggiungi il supporto per i video
+        elif "mp4" in mime_type:
+            return ".mp4"
+        elif "avi" in mime_type:
+            return ".avi"
+        elif "mov" in mime_type:
+            return ".mov"
+        elif "mkv" in mime_type:
+            return ".mkv"
         return ""
+        
+    @staticmethod
+    def get_fourcc_from_extension(extension):
+        """
+        Funzione di utilità per restituire il fourcc corretto in base all'estensione del file video.
+        """
+        if extension in ['.mp4', '.m4v']:
+            return 'mp4v'  # Fourcc per MP4
+        elif extension in ['.avi']:
+            return 'XVID'  # Fourcc per AVI
+        elif extension in ['.mov']:
+            return 'avc1'  # Fourcc per MOV
+        else:
+            raise ValueError(f"Estensione video non supportata: {extension}")

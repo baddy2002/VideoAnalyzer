@@ -5,30 +5,30 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: image_analysis-fastapi
-    container_name: image_analysis-fastapi
+    image: video_analysis-fastapi
+    container_name: video_analysis-fastapi
     restart: unless-stopped
     depends_on:
       - postgres-service
     ports:
       - "8000:8000"
     networks:
-      - image-analysis
+      - video-analysis
     volumes:
       - ".:/usr/srv"
 
   postgres-service:
     image: postgres:latest
     environment:
-      POSTGRES_PASSWORD: image_analysis
-      POSTGRES_USER: image_analysis
-      POSTGRES_DB: image_analysis
+      POSTGRES_PASSWORD: video_analysis
+      POSTGRES_USER: video_analysis
+      POSTGRES_DB: video_analysis
     ports:
       - '5959:5432'
     networks:
-      - image-analysis
+      - video-analysis
     volumes:
-      - image_analysis_postgres_data:/var/lib/postgres
+      - video_analysis_postgres_data:/var/lib/postgres
 
   pgadmin4-service:
     image: dpage/pgadmin4
@@ -40,14 +40,14 @@ services:
     depends_on:
       - postgres-service
     environment:
-      PGADMIN_DEFAULT_EMAIL: imageAnalysis@imageAnalysis.net
-      PGADMIN_DEFAULT_PASSWORD: imageAnalysis
+      PGADMIN_DEFAULT_EMAIL: videoAnalysis@videoAnalysis.net
+      PGADMIN_DEFAULT_PASSWORD: videoAnalysis
     networks:
-      - image-analysis
+      - video-analysis
 
 
 networks:
-  image-analysis:
+  video-analysis:
 volumes:
-  image_analysis_postgres_data:
+  video_analysis_postgres_data:
     external: true

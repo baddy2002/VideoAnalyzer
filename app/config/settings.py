@@ -25,3 +25,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = os.environ.get("POSTGRES_PASSWORD", 'image_analysis')
     POSTGRES_DB: str = os.environ.get("POSTGRES_DB", 'image_analysis')
     DATABASE_URI: str =  f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+
+    STATIC_FOLDER: str = os.environ.get("STATIC_FOLDER", "./static")  
+    VIDEO_FOLDER: str = os.environ.get("VIDEO_FOLDER", "./static/video") 
+    TEMPLATES_FOLDER: str = os.environ.get("TEMPLATES_FOLDER", "./templates")  
