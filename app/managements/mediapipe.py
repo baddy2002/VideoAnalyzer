@@ -1,13 +1,17 @@
 from config.settings import Settings
 import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
 settings = Settings()
-# Inizializzazione di MediaPipe Pose
-mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
+mp_pose = mp.solutions.pose
 
+# Inizializzazione di MediaPipe Pose
 pose = mp_pose.Pose(model_complexity=2, smooth_landmarks=True, enable_segmentation=True, static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)    #better and more optimized for video analysis
-
+#if Mediapipe holistic 
+mp_holistic = mp.solutions.holistic
+holistic = mp_holistic.Holistic(model_complexity=2, smooth_landmarks=True, enable_segmentation=True, static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
 angle_keypoints_mapping = [
 
@@ -84,6 +88,6 @@ angle_keypoints_mapping = [
 # Imposta la tolleranza per gli angoli e la soglia
 ANGLE_TOLERANCE = 15  # in gradi
 KEYPOINTS_CONFIDENCE_TOLERANCE= 0.5
-ANGLES_CONFIDENCE_TOLERANCE= 0.6
+ANGLES_CONFIDENCE_TOLERANCE= 0.5
 ANGLE_CONFIDENCE_TOLERANCE= 0.2
 SIMILARITY_THRESHOLD = 10

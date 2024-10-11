@@ -1,7 +1,8 @@
 import logging
 import cv2
+import mediapipe as mp
 
-from managements.mediapipe import angle_keypoints_mapping, KEYPOINTS_CONFIDENCE_TOLERANCE, pose
+from managements.mediapipe import angle_keypoints_mapping, KEYPOINTS_CONFIDENCE_TOLERANCE, holistic, pose
 
 logger = logging.getLogger(__name__)
 
@@ -45,27 +46,34 @@ def filter_keypoints(selected_area, selected_portions):
 
 # Funzione per estrarre i keypoints dalle immagini con MediaPipe
 def extract_keypoints(image, angle_keypoints):
+    
     # Converte l'immagine in RGB poiché MediaPipe lavora in RGB
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
+
     # Processa l'immagine con MediaPipe
     results = pose.process(image_rgb)
+        
     keypoints = []
     
+    # Opzionale: Visualizza i risultati sul frame
     if results.pose_landmarks:
-        # Estrarre tutti i keypoints dall'immagine
         all_keypoints = []
+        # Itera sui landmarks di pose
         for idx, lm in enumerate(results.pose_landmarks.landmark):
             if lm.visibility > KEYPOINTS_CONFIDENCE_TOLERANCE:
-                all_keypoints.append([idx, lm.x, lm.y, lm.visibility])  # Aggiungi l'indice per il mapping
-
+                all_keypoints.append([idx, lm.x, lm.y, lm.visibility])  
+        
         # Filtrare i keypoints che sono presenti in almeno un angolo
         angle_keypoints_unique = set()
-
+        logger.info("Angle keypoints: " + str(angle_keypoints))
         for mapping in angle_keypoints:
             angle_keypoints_unique.update(mapping[0])
 
+        logger.info("Angle keypoints unique: " + str(angle_keypoints_unique))
+        logger.info("all_keypoints value: " + str(all_keypoints))
+        
         # Mantieni solo i keypoints filtrati
         keypoints = [all_keypoints[idx] for idx in angle_keypoints_unique if idx < len(all_keypoints)]
+
     logger.info("calculated keypoints: " + str(keypoints))
     return keypoints

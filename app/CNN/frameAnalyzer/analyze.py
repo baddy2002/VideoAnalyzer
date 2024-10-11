@@ -34,6 +34,10 @@ async def single_frame_confrontation(file1, file2, extension1, extension2, area,
 
     angle_keypoints = filter_keypoints(area, portions)
 
+    # To improve performance, optionally mark the image as not writeable to
+    # pass by reference.
+    image1.flags.writeable = False           
+    image2.flags.writeable = False              #reference: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/holistic.md
     # Elenco dei keypoints
     keypoints1 = extract_keypoints(image1, angle_keypoints)
     keypoints2 = extract_keypoints(image2, angle_keypoints)
@@ -43,18 +47,22 @@ async def single_frame_confrontation(file1, file2, extension1, extension2, area,
     similarity_score, angles_results = calculate_pose_similarity_with_angles(keypoints1, keypoints2, angle_keypoints, area, portions)
 
     # Stampa il punteggio di similarità
-    print(f'Punteggio di similarità tra le pose: {similarity_score}')
-    print(f'Risultato comparazione angoli: {angles_results}')
+    logger.info(f'Punteggio di similarità tra le pose: {similarity_score}')
+    logger.info(f'Risultato comparazione angoli: {angles_results}')
 
+
+    image1.flags.writeable = True           
+    image2.flags.writeable = True
     if similarity_score != float("inf"):
 
         # Imposta una nuova soglia, ad esempio 5.0
         if similarity_score < SIMILARITY_THRESHOLD:
-            print("Le due pose sono simili.")
+            logger.info("Le due pose sono simili.")
             similar = True
         else:
             similar = False
-            print("Le due pose sono diverse.")
+            logger.info("Le due pose sono diverse.")
+
 
         # Disegna gli scheletri sulle immagini
         draw_skeleton(image1, keypoints1, (0, 255,0))

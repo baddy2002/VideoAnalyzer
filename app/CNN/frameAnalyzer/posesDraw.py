@@ -4,7 +4,7 @@
 import cv2
 import logging
 
-from managements.mediapipe import mp_pose, mp_drawing
+from managements.mediapipe import mp_pose
 from app.CNN.frameAnalyzer.posesConfrontation import find_keypoint_by_id
 
 logger = logging.getLogger(__name__)
