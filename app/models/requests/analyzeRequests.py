@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from fastapi import File, UploadFile
 from typing import Annotated
 
@@ -17,3 +17,4 @@ class Portions(BaseModel):
 class ImagesAnalysisRequest(BaseModel):
     area: Area
     portions: Portions
+    description:  str = Field(..., min_length=5)

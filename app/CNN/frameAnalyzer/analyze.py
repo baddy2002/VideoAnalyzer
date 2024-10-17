@@ -1,16 +1,20 @@
+import base64
+import uuid
 import cv2
 import numpy as np
 import mediapipe as mp
 import logging
-import io
-import tempfile
-from app.CNN.frameAnalyzer.poseExtrapolation import extract_keypoints, filter_keypoints
-from app.CNN.frameAnalyzer.posesConfrontation import calculate_pose_similarity_with_angles
-from app.CNN.frameAnalyzer.posesDraw import compare_skeleton, draw_skeleton
-from utils.FileUtils import FileUtils
+import io, tempfile
+from app.services.TransactionalDbService import save_pose_angles_to_db, save_video_metadata, update_video_metadata
+from app.CNN.frameAnalyzer.poseExtrapolation import extract_keypoints, filter_keypoints, calculate_pose_angles
+from app.CNN.frameAnalyzer.poseDraw import draw_skeleton
 import os
+from app.utils.FileUtils import FileUtils
 from config.settings import Settings
-from managements.mediapipe import SIMILARITY_THRESHOLD
+from app.config.database import get_session
+from app.models.entities.FrameAngle import FrameAngle
+from datetime import datetime
+import subprocess
 
 logger = logging.getLogger(__name__)
 settings = Settings()
@@ -18,154 +22,153 @@ settings = Settings()
 
 #<=================================================ANALYSIS================================================>
 
-async def single_frame_confrontation(file1, file2, extension1, extension2, area, portions):
+async def single_frame_extimation(file1, area, portions, frame_number, video_uuid):
     file_content1 = file1.getvalue()
-    file_content2 = file2.getvalue()
 
     # Verifica se i contenuti non sono vuoti
-    if not file_content1 or not file_content2:
+    if not file_content1:
         raise ValueError("I file sono vuoti o non sono stati letti correttamente.")
     
     # Decodifica le immagini
     image1 = cv2.imdecode(np.frombuffer(file_content1, np.uint8), cv2.IMREAD_COLOR)
-    image2 = cv2.imdecode(np.frombuffer(file_content2, np.uint8), cv2.IMREAD_COLOR)
 
-    similar = None
 
     angle_keypoints = filter_keypoints(area, portions)
 
     # To improve performance, optionally mark the image as not writeable to
     # pass by reference.
-    image1.flags.writeable = False           
-    image2.flags.writeable = False              #reference: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/holistic.md
+    image1.flags.writeable = False           #reference: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/holistic.md            
     # Elenco dei keypoints
     keypoints1 = extract_keypoints(image1, angle_keypoints)
-    keypoints2 = extract_keypoints(image2, angle_keypoints)
-
     
     # Calcola la similarità delle pose
-    similarity_score, angles_results = calculate_pose_similarity_with_angles(keypoints1, keypoints2, angle_keypoints, area, portions)
-
+    angles_results = calculate_pose_angles(keypoints1, angle_keypoints, area, portions)
+    await save_pose_angles_to_db(frame_number=frame_number, angles_results=angles_results,  video_uuid=video_uuid, keypoints=keypoints1)
     # Stampa il punteggio di similarità
-    logger.info(f'Punteggio di similarità tra le pose: {similarity_score}')
-    logger.info(f'Risultato comparazione angoli: {angles_results}')
-
-
-    image1.flags.writeable = True           
-    image2.flags.writeable = True
-    if similarity_score != float("inf"):
-
-        # Imposta una nuova soglia, ad esempio 5.0
-        if similarity_score < SIMILARITY_THRESHOLD:
-            logger.info("Le due pose sono simili.")
-            similar = True
-        else:
-            similar = False
-            logger.info("Le due pose sono diverse.")
-
-
-        # Disegna gli scheletri sulle immagini
-        draw_skeleton(image1, keypoints1, (0, 255,0))
-        draw_skeleton(image2, keypoints1, (255, 0,0))
-        compare_skeleton(image2, keypoints1, keypoints2, angles_results, angle_keypoints)
-    else:
-        draw_skeleton(image2, keypoints1, (255, 0,0))
-        logger.warning("total confidence is insufficient, impossible to compare")
+    logger.info(f'Risultato angoli: {angles_results}')
+    image1.flags.writeable = True
+    draw_skeleton(image1, keypoints1, (0, 255,0))
+    
     # Codifica le immagini in memoria
-    success1, encoded_image1 = cv2.imencode(extension1, image1)
-    success2, encoded_image2 = cv2.imencode(extension2, image2)
+    encoded, encoded_image = cv2.imencode('.jpg', image1)
 
-    if not success1 or not success2:
+    if not encoded:
         raise ValueError("Errore durante la codifica delle immagini.")
 
     # Crea byte stream dalle immagini codificate
-    image_stream1 = io.BytesIO(encoded_image1)
-    image_stream2 = io.BytesIO(encoded_image2)
+    image_stream = io.BytesIO(encoded_image)
 
-    return similar, image_stream1, image_stream2
+    return angles_results, image_stream
     
 
 
 
-async def analyze_video_frames(file1, file2, extension1, extension2, area, portions):
+async def analyze_video_frames(temp_video1, extension1,  area, portions, video_name, description):
+    frame_number = 0
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=extension1) as temp_video1, \
-         tempfile.NamedTemporaryFile(delete=False, suffix=extension2) as temp_video2:
+    # Chiude i file temporanei per essere utilizzabili con OpenCV
+    temp_video1.close()
 
-         # Scrive i contenuti dei file video nei file temporanei
-        temp_video1.write(await file1.read())
-        temp_video2.write(await file2.read())
+    # Aprire i video con OpenCV utilizzando i percorsi dei file temporanei
+    video1 = cv2.VideoCapture(temp_video1.name)
 
-        # Chiude i file temporanei per essere utilizzabili con OpenCV
-        temp_video1.close()
-        temp_video2.close()
+    # Verifica che i video siano stati aperti correttamente
+    if not video1.isOpened():
+        raise ValueError("Video non aperto.")
 
-        # Aprire i video con OpenCV utilizzando i percorsi dei file temporanei
-        video1 = cv2.VideoCapture(temp_video1.name)
-        video2 = cv2.VideoCapture(temp_video2.name)
+    # Definiamo l'estensione per i singoli frame (ad esempio .jpg)
+    frame_extension = '.jpg'
 
-        # Verifica che i video siano stati aperti correttamente
-        if not video1.isOpened() or not video2.isOpened():
-            raise ValueError("Uno o entrambi i video non possono essere aperti.")
+    video_id = uuid.uuid4()  # Genera un UUID per il video
+    video_data = {
+        'uuid': video_id,
+        'name': video_name,
+        'format': extension1,
+        'size': 0,  # Dimensione iniziale
+        'area':area,
+        'portions':portions,
+        'description': description
+    }
+    await save_video_metadata(video_data)
 
-        # Ottieni informazioni sul video 2 (dimensioni, FPS, etc.)
-        width = int(video2.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(video2.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = video2.get(cv2.CAP_PROP_FPS)
+    output_filename = os.path.join(settings.VIDEO_FOLDER, f'{video_name.split(extension1)[0]}{datetime.now().strftime("%Y%m%d_%H%M%S")}{extension1}')
+    fourcc = cv2.VideoWriter_fourcc(*FileUtils.get_fourcc_from_extension(extension1))
+    width = int(video1.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video1.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = video1.get(cv2.CAP_PROP_FPS)
+    
+    #output_video = cv2.VideoWriter(output_filename, fourcc, fps, (width, height))
+    
 
-        # Determina l'estensione corretta dal file video di input
-        output_filename = f'{settings.VIDEO_FOLDER}/output{extension2}'
-        fourcc = cv2.VideoWriter_fourcc(*FileUtils.get_fourcc_from_extension(extension2))
+    temp_frames_dir = os.path.join(settings.VIDEO_FOLDER, f'{video_name}_frames')
+    os.makedirs(temp_frames_dir, exist_ok=True)
 
-        # Crea un video writer per salvare il video modificato
-        output_video = cv2.VideoWriter(output_filename, fourcc, fps, (width, height))
+    while True:
+        # Leggi un frame da ciascun video
 
-        similar_frames = []
+        ret1, frame1 = video1.read()
 
-        # Definiamo l'estensione per i singoli frame (ad esempio .jpg)
-        frame_extension = '.jpg'
+        # Se uno dei video ha finito i frame, interrompi il ciclo
+        if not ret1:
+            break
+        
 
-        while True:
-            # Leggi un frame da ciascun video
-            ret1, frame1 = video1.read()
-            ret2, frame2 = video2.read()
+        # Converte i frame in stream (necessario per single_frame_confrontation)
+        frame_stream1 = io.BytesIO(cv2.imencode(frame_extension, frame1)[1].tobytes())
 
-            # Se uno dei video ha finito i frame, interrompi il ciclo
-            if not ret1 or not ret2:
-                break
-
-            # Converte i frame in stream (necessario per single_frame_confrontation)
-            frame_stream1 = io.BytesIO(cv2.imencode(frame_extension, frame1)[1].tobytes())
-            frame_stream2 = io.BytesIO(cv2.imencode(frame_extension, frame2)[1].tobytes())
-
-            # Chiamare la funzione esistente per confrontare i frame
-            similar, _, processed_frame2 = await single_frame_confrontation(
-                frame_stream1, frame_stream2, frame_extension, frame_extension, area, portions
-            )
-
-            # Decodifica i frame elaborati e scrivi nel video di output
-            decoded_frame2 = cv2.imdecode(np.frombuffer(processed_frame2.getbuffer(), np.uint8), cv2.IMREAD_COLOR)
-            output_video.write(decoded_frame2)
-
-            # Aggiungi il risultato alla lista dei frame simili
-            similar_frames.append(similar)
-
-
-        # Rilascia i video e chiudi il video writer
-        video1.release()
-        video2.release()
-        output_video.release()
-
-        # Chiude i buffer dei file
-        file1.file.close()
-        file2.file.close()
-
+        # Chiamare la funzione esistente per confrontare i frame
+        _, processed_frame = await single_frame_extimation(
+            frame_stream1, area, portions, frame_number, video_id
+        )
+        frame_number += 1
+        
+        decoded_frame =  cv2.imdecode(np.frombuffer(processed_frame.getbuffer(), np.uint8), cv2.IMREAD_COLOR)
+        frame_filename = os.path.join(temp_frames_dir, f"frame_{frame_number:06d}.jpg")
+        cv2.imwrite(frame_filename, decoded_frame)
+        
+        #output_video.write(decoded_frame)
+        if frame_number == 100:
+            _, buffer = cv2.imencode('.jpeg', decoded_frame)  # Salva come JPEG
+            thumbnail_base64 = base64.b64encode(buffer).decode('utf-8')
+    # Rilascia i video e chiudi il video writer
+    video1.release()
+    #output_video.release()
     # Rimuovere i file temporanei
-    os.remove(temp_video1.name)
-    os.remove(temp_video2.name)
-    return similar_frames, output_filename
+     # Utilizza FFmpeg per unire i frame processati in un video
+    ffmpeg_cmd = [
+        'ffmpeg', '-y',  # Sovrascrivi il file di output
+        '-framerate', str(fps),
+        '-i', os.path.join(temp_frames_dir, 'frame_%06d.jpg'),  # Input dei frame
+        '-c:v', 'libx264',  # Codifica in H.264
+        '-pix_fmt', 'yuv420p',  # Compatibilità con i browser
+        output_filename
+    ]
 
+    subprocess.run(ffmpeg_cmd, check=True)
 
+    # Rimuovi i frame temporanei
+    for frame_file in os.listdir(temp_frames_dir):
+        os.remove(os.path.join(temp_frames_dir, frame_file))
+    os.rmdir(temp_frames_dir)
+    # Rimuovere i file temporanei
+    if os.path.exists(temp_video1.name):
+        os.remove(temp_video1.name)
+    else:
+        logger.error("file not found")
 
-#TODO: parallel processing of the frames
-#TODO: new process with Mediapipe.tasks 
+    # TODO: Carica il file su un servizio di storage esterno
+    #await upload_to_storage_service(output_filename)  # Implementa la funzione per caricare il video
+
+    # Salva i metadati nel database
+
+    video_data = {
+        'name': os.path.basename(output_filename),
+        'format': extension1,
+        'size': os.path.getsize(output_filename),  # Ottieni la dimensione del file
+        'area':area,
+        'portions':portions,
+        'description': description,
+        'thumbnail': thumbnail_base64
+    }
+    await update_video_metadata(video_id, video_data)
+

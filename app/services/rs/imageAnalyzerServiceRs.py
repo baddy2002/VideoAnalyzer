@@ -4,14 +4,14 @@ from fastapi.responses import StreamingResponse, Response
 import logging
 
 from app.models.requests import analyzeRequests
-from app.CNN.frameAnalyzer import analyze
+from app.CNN.frameConfrontator import analyze
 from utils.FileUtils import FileUtils
 import os
 
 logger = logging.getLogger(__name__)
 
 image_analysis_router = APIRouter(
-    prefix=prefixs.analyze_prefix,
+    prefix=prefixs.confrontation_prefix,
     tags=["Video confrontation"],
     responses={404: {"description": "Not found"}},
 )

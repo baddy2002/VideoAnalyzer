@@ -13,13 +13,14 @@ RUN mkdir -p /usr/local/lib/python3.12/site-packages/mediapipe/modules/pose_land
 
 RUN useradd -rm -d /code -s /bin/bash -g root -G sudo -u 1001 ubuntu
 
-# Install system dependencies for openCV
+# Install system dependencies for openCV and FFmpeg
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev
+    libxrender-dev \
+    ffmpeg
 
 # copy requirements file
 COPY ./requirements.txt /usr/srv/requirements.txt
