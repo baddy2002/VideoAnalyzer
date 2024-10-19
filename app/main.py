@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
 
-from app.services.rs import imageAnalyzerServiceRs, videoAnalyzerServiceRs
+from app.services.rs import videoAnalyzerServiceRs
+from app.services.ws import videoAnalyzerServiceWs, videoConfrontatorServiceWs
 from app.models.entities import FrameAngle, Video                                              #Sono da importare o non verranno aggiunte al db automaticamente
 from app.config.database import async_engine, Base
 from app.config.settings import Settings
@@ -33,8 +34,9 @@ def create_application():
         allow_methods=["*"],  # consente tutti i metodi (GET, POST, ecc.)
         allow_headers=["*"],  # consente tutti gli header
     )
-    application.include_router(imageAnalyzerServiceRs.image_analysis_router)
     application.include_router(videoAnalyzerServiceRs.video_analysis_router)
+    application.include_router(videoConfrontatorServiceWs.video_confront_router)
+    application.include_router(videoAnalyzerServiceWs.video_analyze_router)
     #Crea tabelle e collega db
     try:
         application.add_event_handler("startup", startup_event)

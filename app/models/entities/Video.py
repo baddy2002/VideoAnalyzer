@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, BigInteger, TIMESTAMP, Text, JSON
+from sqlalchemy import Column, Double, Integer, String, BigInteger, TIMESTAMP, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.sql import func
@@ -16,4 +16,6 @@ class Video(Base):
     area = Column(JSON, nullable=False)  # Salva il dict come JSON
     portions = Column(JSON, nullable=False)  # Salva il dict come JSON
     thumbnail = Column(Text, nullable=True)
-
+    fps = Column(Double, nullable=False)
+    width = Column(Double, nullable=False)
+    height = Column(Double, nullable=False)

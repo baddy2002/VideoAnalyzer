@@ -16,7 +16,7 @@ from app.models.responses import VideoResponse
 from app.CNN.frameAnalyzer import analyze
 from utils.FileUtils import FileUtils
 import os
-from uuid import UUID
+from uuid import UUID, uuid4
 from app.config.database import get_session
 
 settings = Settings()
@@ -30,8 +30,8 @@ video_analysis_router = APIRouter(
 
 @video_analysis_router.get("/", response_model=List[VideoResponse.Video])
 async def get_analysis(
-    startRow: int = Query(0, ge=0),  # Inizio della paginazione
-    pageSize: int = Query(10, gt=0),  # Numero di elementi per pagina
+    startRow: int = Query(0, ge=0),  
+    pageSize: int = Query(10, gt=0),  
     order_by: str = Query("created_at DESC"),  # Ordinamento predefinito
     like_name: Optional[str] = Query(None)  # Filtro facoltativo per LIKE
 ):
@@ -131,7 +131,6 @@ async def get_video_stream(request: Request, video_filename: str):
         headers['Cache-Control'] = 'no-cache'
         headers['Content-Encoding'] = 'identity'
         headers['Access-Control-Expose-Headers'] = 'Content-Range, Accept-Ranges, Content-Length, Access-Control-Allow-Origin, Content-Encoding'
-        logger.info("here we are")
         def iterfile():
             with open(video_path, 'rb') as f:
                 f.seek(range_start)
@@ -141,7 +140,6 @@ async def get_video_stream(request: Request, video_filename: str):
                     data = f.read(chunk_size)
                     if not data:
                         break
-                    logger.info("video data: " + str(data))
                     yield data
                     remaining -= len(data)
 
@@ -159,51 +157,54 @@ async def analyze_videos(
     description: str = Form(...),
     file1: UploadFile = File(...),      #File "corretto" che verrà usato per il confronto
 ):
-    if not isinstance(description, str):
-        VideoResponse.JsonBadRequestResponse("La descrizione deve essere una stringa valida.")
-    elif not description or len(description) < 5 or description.isspace():
-        VideoResponse.JsonBadRequestResponse("La descrizione non può essere vuota o minore di 5 caratteri.")
-    # Carica i dati JSON nei modelli
     try:
-        area_data = analyzeRequests.Area.parse_raw(area)
-        portions_data = analyzeRequests.Portions.parse_raw(portions)
-    except ValueError as e:
-        logger.error(f"Errore durante il parsing dei JSON: {e}")
-        return VideoResponse.JsonBadRequestResponse(f"Errore durante il parsing: {e}")
+        if not isinstance(description, str):
+            VideoResponse.JsonBadRequestResponse("La descrizione deve essere una stringa valida.")
+        elif not description or len(description) < 5 or description.isspace():
+            VideoResponse.JsonBadRequestResponse("La descrizione non può essere vuota o minore di 5 caratteri.")
+        # Carica i dati JSON nei modelli
+        try:
+            area_data = analyzeRequests.Area.parse_raw(area)
+            portions_data = analyzeRequests.Portions.parse_raw(portions)
+        except ValueError as e:
+            logger.error(f"Errore durante il parsing dei JSON: {e}")
+            return VideoResponse.JsonBadRequestResponse(f"Errore durante il parsing: {e}")
 
-    total_data = sum(area_data.dict().values())
-    if round(total_data, 1) > 1.0 or round(total_data, 1) < 1.0:
-        return VideoResponse.JsonBadRequestResponse("La somma dei valori di area deve essere 100%. have: " + str(total_data*100))
+        total_data = sum(area_data.dict().values())
+        if round(total_data, 1) > 1.0 or round(total_data, 1) < 1.0:
+            return VideoResponse.JsonBadRequestResponse("La somma dei valori di area deve essere 100%. have: " + str(total_data*100))
 
-    # Controlla che la somma delle porzioni sia 100%
-    total_portions = sum(portions_data.dict().values())
-    if round(total_portions, 1) > 1.0 or round(total_portions, 1) < 1.0:
-        return VideoResponse.JsonBadRequestResponse("La somma dei valori di portions deve essere 100%. have: " + str(total_portions*100))
+        # Controlla che la somma delle porzioni sia 100%
+        total_portions = sum(portions_data.dict().values())
+        if round(total_portions, 1) > 1.0 or round(total_portions, 1) < 1.0:
+            return VideoResponse.JsonBadRequestResponse("La somma dei valori di portions deve essere 100%. have: " + str(total_portions*100))
 
 
-    # Ottieni le estensioni dei file
-    extension1 = await FileUtils.get_mime_type_with_name(file1)
-    if(extension1 is None):                                     #cerca di evitare di dover leggere il contenuto per risalire al tipo
-        extension1 = await FileUtils.get_mime_type(file1)
+        # Ottieni le estensioni dei file
+        extension1 = await FileUtils.get_mime_type_with_name(file1)
+        if(extension1 is None):                                     #cerca di evitare di dover leggere il contenuto per risalire al tipo
+            extension1 = await FileUtils.get_mime_type(file1)
 
-    extension1 = await FileUtils.get_extension_from_mime(extension1)
+        extension1 = await FileUtils.get_extension_from_mime(extension1)
 
-    # Crea un file temporaneo per salvare il video
-    temp_file = NamedTemporaryFile(delete=False, suffix=extension1, dir="/usr/srv")
-    with temp_file as tmp:
-        shutil.copyfileobj(file1.file, tmp)
-    video_name=file1.filename
-    logger.info("File caricato correttamente." + str(temp_file.name))
+        # Crea un file temporaneo per salvare il video
+        temp_file = NamedTemporaryFile(delete=False, suffix=extension1, dir="/usr/srv")
+        with temp_file as tmp:
+            shutil.copyfileobj(file1.file, tmp)
+        video_name=file1.filename
+        logger.info("File caricato correttamente." + str(temp_file.name))
 
-    logger.info("...begin analysis...")
-    background_tasks.add_task(analyze.analyze_video_frames, temp_file, extension1, area_data.dict(), portions_data.dict(), video_name, description)
-    logger.info("...end analysis...")
+        connection_uid = str(uuid4())
+        background_tasks.add_task(analyze.analyze_video_frames, temp_file, extension1, area_data.dict(), portions_data.dict(), video_name, description, connection_uid)
 
-    
-    return VideoResponse.JsonResponseModel(
-        "request processed, the video can require some minutes to be reachable, "+
-        "if after some minutes you cannot see the video you can retry to send it")
-
+        
+        return VideoResponse.JsonResponseModel(
+            "request processed, the video can require some minutes to be reachable, "+
+            "if after some minutes you cannot see the video you can retry to send it", status_code=200, additional_fields={"detail": connection_uid})
+    except Exception as e:
+        if os.path.exists(temp_file.name):
+            os.remove(temp_file.name)
+        return VideoResponse.JsonServerErrorResponse("Impossible process video, unespected error: " + str(e))
 
 @video_analysis_router.get('/{uuid}/keypoints')
 async def get_video_keypoints(
@@ -228,19 +229,5 @@ async def get_video_keypoints(
         return VideoResponse.JsonServerErrorResponse('errore durante la creazione della risposta  '+ str(e))
 
 
-#<-------------------------------------------FUTURE STREAM-------------------------------------------->
 
 
-@video_analysis_router.websocket("/ws/video_stream")
-async def video_stream(websocket: WebSocket):
-    await websocket.accept()
-    
-    while True:
-        # Riceve frame dal frontend
-        frame_bytes = await websocket.receive_bytes()
-
-        # TODO: Prendi i dati e usali per la nuova funzione del confronto
-        # TODO: nuova funzione di confronto
-
-        # Invia frame elaborato di nuovo al frontend
-        await websocket.send_bytes(frame_bytes)

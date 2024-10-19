@@ -4,11 +4,12 @@ from uuid import UUID
 from fastapi.responses import JSONResponse
 
 class JsonResponseModel(JSONResponse):
-    message: str
-    status_code: int
+    def __init__(self, message: str, status_code=200, additional_fields=None):
+        content = {"message": message}
+        if additional_fields:
+            content.update(additional_fields)
+        super().__init__(status_code=status_code, content=content)
 
-    def __init__(self, message: str, status_code=200):
-        super().__init__(status_code=status_code, content={"message": message})
 
 class JsonBadRequestResponse(JsonResponseModel):
 

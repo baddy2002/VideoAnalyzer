@@ -66,12 +66,8 @@ def extract_keypoints(image, angle_keypoints):
         
         # Filtrare i keypoints che sono presenti in almeno un angolo
         angle_keypoints_unique = set()
-        logger.info("Angle keypoints: " + str(angle_keypoints))
         for mapping in angle_keypoints:
             angle_keypoints_unique.update(mapping[0])
-
-        logger.info("Angle keypoints unique: " + str(angle_keypoints_unique))
-        logger.info("all_keypoints value: " + str(all_keypoints))
         
         # Mantieni solo i keypoints filtrati
         keypoints = [all_keypoints[idx] for idx in angle_keypoints_unique if idx < len(all_keypoints)]

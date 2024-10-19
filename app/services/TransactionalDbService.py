@@ -40,7 +40,10 @@ async def save_video_metadata(video_data):
                 size=video_data['size'],
                 area=video_data['area'],
                 portions=video_data['portions'],
-                description=video_data['description']
+                description=video_data['description'],
+                fps=video_data['fps'],
+                width=video_data['width'],
+                height=video_data['height'],
             )
             session.add(video_entry)
             await session.commit()  # Usa await per il commit asincrono
