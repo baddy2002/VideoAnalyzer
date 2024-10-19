@@ -35,6 +35,9 @@ class Video(BaseModel, JSONResponse):
     thumbnail: str
     area: dict
     portions: dict
+    fps: float
+    width: float
+    height: float
 
     class Config:
         orm_mode = True  # Permette a Pydantic di lavorare con SQLAlchemy
