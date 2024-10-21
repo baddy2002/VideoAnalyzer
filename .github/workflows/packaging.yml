@@ -48,15 +48,15 @@ jobs:
         docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
         docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
 
-#    - name: Deploy Application with Docker Compose
-#      run: |
-#        docker compose down
-#        docker compose up -d
-
-
-    - name: Deploy Application to Railway
-      env:
-        RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}  # Assicurati di impostare il tuo token API come segreto in GitHub
+    - name: Deploy Application with Docker Compose
       run: |
-        curl -sSL https://railway.app/install.sh | sh  # Installa il CLI di Railway
-        railway up -- --docker
+        docker compose down
+        docker compose up -d
+
+
+#    - name: Deploy Application to Railway
+#      env:
+#        RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}  # Assicurati di impostare il tuo token API come segreto in GitHub
+#      run: |
+#        curl -sSL https://railway.app/install.sh | sh  # Installa il CLI di Railway
+#        railway up --docker
