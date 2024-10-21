@@ -54,10 +54,9 @@ jobs:
         docker compose up -d
 
 
-#    - name: Deploy Application to Railway
-#      env:
-#        RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}  # Assicurati di impostare il tuo token API come segreto in GitHub
-#      run: |
-#        curl -sSL https://railway.app/install.sh | sh  # Installa il CLI di Railway
-#        railway link
-#        railway up
+    - name: Deploy Application to Railway
+      env:
+        RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}  # Assicurati di impostare il tuo token API come segreto in GitHub
+      run: |
+        curl -sSL https://railway.app/install.sh | sh  # Installa il CLI di Railway
+        railway up --docker
