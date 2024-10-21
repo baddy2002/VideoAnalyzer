@@ -48,10 +48,10 @@ jobs:
         docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
         docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
 
-    - name: Deploy Application with Docker Compose
-      run: |
-        docker compose down
-        docker compose up -d
+#    - name: Deploy Application with Docker Compose
+#      run: |
+#        docker compose down
+#        docker compose up -d
 
 
 #    - name: Deploy Application to Railway
