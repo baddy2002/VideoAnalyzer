@@ -10,7 +10,7 @@ from app.CNN.frameConfrontator.posesConfrontation import frame_confrontation
 from app.config.database import get_session
 from app.config.settings import Settings
 from app.managements import prefixs
-from app.managements.mediapipe import SIMILARITY_THRESHOLD
+from app.managements.mediapipe import num_frames_to_check
 from app.models.entities import FrameAngle, Video
 
 settings = Settings()
@@ -97,17 +97,17 @@ async def video_stream(websocket: WebSocket):
                 await websocket.send_json({"error": "An unexpected error occurred"})
                 break
 
-
+            frame_range = range(frame_number - num_frames_to_check, frame_number + num_frames_to_check)
             try:
                 async with get_session() as session:
                 # Costruisci la query per cercare un singolo video
-                    query = select(FrameAngle.FrameAngle).where(FrameAngle.FrameAngle.frame_number == frame_number, FrameAngle.FrameAngle.video_uuid == uuid)
+                    query = select(FrameAngle.FrameAngle).where(FrameAngle.FrameAngle.frame_number.in_(frame_range), FrameAngle.FrameAngle.video_uuid == uuid)
                     
                     # Esegui la query
                     result = await session.execute(query)
-                    frame_analysis = result.scalars().first()
+                    frame_analysis_list = result.scalars().all()
                     
-                    if frame_analysis is None:
+                    if frame_analysis_list is None:
                         await websocket.send_json({"error": "Impossible found an analysis for frame: " + str(frame_number) + " of video: " + str(uuid)})
                         break
             except DatabaseError as var1:
@@ -127,11 +127,48 @@ async def video_stream(websocket: WebSocket):
                 await websocket.send_json({"error": "An unexpected error occurred"+ str(e)})
                 break
 
-
-
-            pose_connections = frame_confrontation(keypoints, frame_analysis.angles_results, video.area, video.portions, frame_number)
-
+            try:
+                is_mirrored = data.get('is_mirrored')
+                if is_mirrored is None:
+                    await websocket.send_json({"error": "Missing is_mirrored param in the request"})
+                    continue  # Aspetta il prossimo messaggio
+            except json.JSONDecodeError as var3:
+                logger.error(f"Error decoding JSON: {var3}")
+                await websocket.send_json({"error": "Invalid JSON format"})
+                continue
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
+                await websocket.send_json({"error": "An unexpected error occurred"})
+                break
             
+
+            pose_connections = []
+            i=0
+            for single_frame_analysis in frame_analysis_list:
+                # Ottieni le connessioni per il frame corrente
+                current_pose_connections = frame_confrontation(keypoints, single_frame_analysis.angles_results, video.area, video.portions, frame_number, is_mirrored)
+
+                for new_connection in current_pose_connections:
+                    connection_key = new_connection['connection']
+                    
+                    # Controlla se la connessione è già in pose_connections
+                    existing_conn = next((conn for conn in pose_connections if conn['connection'] == connection_key), None)
+                    
+                    if existing_conn:
+                        # Aggiorna se angle_diff è minore
+                        if new_connection['diff'] < existing_conn['diff']:
+                            existing_conn.update({
+                                'connection': existing_conn['connection'],
+                                'color': new_connection['color'],
+                                'frame_number': new_connection['frame_number'],
+                                'diff': new_connection['diff']
+                            })
+                    # Se la connessione non esiste già, non fare nulla
+
+                # Imposta le connessioni iniziali solo alla prima iterazione
+                if i == 0:
+                    pose_connections = current_pose_connections.copy()
+                        
             logger.info('Risultato comparazione angoli:' +str(pose_connections))
 
 

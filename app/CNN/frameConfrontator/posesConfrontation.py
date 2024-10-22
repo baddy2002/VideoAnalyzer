@@ -2,7 +2,7 @@ import math
 import numpy as np
 import logging
 
-from managements.mediapipe import ANGLE_ERROR_TOLERANCE_THRESHOLD, ANGLE_WARNING_TOLERANCE_THRESHOLD, ANGLES_CONFIDENCE_TOLERANCE, ANGLE_TOLERANCE, ANGLE_CONFIDENCE_TOLERANCE, KEYPOINTS_CONFIDENCE_TOLERANCE
+from managements.mediapipe import angle_mirroring, ANGLE_ERROR_TOLERANCE_THRESHOLD, ANGLE_WARNING_TOLERANCE_THRESHOLD, ANGLES_CONFIDENCE_TOLERANCE, ANGLE_TOLERANCE, ANGLE_CONFIDENCE_TOLERANCE, KEYPOINTS_CONFIDENCE_TOLERANCE
 
 
 logger = logging.getLogger(__name__)
@@ -69,8 +69,10 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
 
 
 
-def frame_confrontation(keypoints, angle_results, area, portions, frame_number):
+def frame_confrontation(keypoints, angle_results, area, portions, frame_number, is_mirrored):
     # Calcola la differenza degli angoli
+    if is_mirrored:
+        angle_results = mirror_angles(angle_results, angle_mirroring)
     angle_differences = calculate_pose_angles(keypoints1=keypoints, angle_keypoints=angle_results, selected_area=area, selected_portions=portions)
 
     # Inizializza una lista per le connessioni delle pose
@@ -91,27 +93,46 @@ def frame_confrontation(keypoints, angle_results, area, portions, frame_number):
         # Aggiungi le connessioni alle pose
         new_color1 = update_connection((k1, k2), color, pose_connections)
         new_color2 = update_connection((k2, k3), color, pose_connections)
-        pose_connections.append({"connection": (k1, k2), "color": new_color1, "frame_number": frame_number})
-        pose_connections.append({"connection": (k2, k3), "color": new_color2, "frame_number": frame_number})
-    
+        pose_connections.append({"connection": (k1, k2), "color": new_color1, "frame_number": frame_number, "diff": angle_diff})
+        pose_connections.append({"connection": (k2, k3), "color": new_color2, "frame_number": frame_number, "diff": angle_diff})
+
     return pose_connections
 
-''' 
-       if k2 == 14 and k3 == 16:
-            logger.error("connection should be sended: " + str(k2, k3))
-        
-        elif k1 == 16 and (k2 == 18 or k2 == 20):
-            logger.error("connection should be sended: " + str(k1, k2))
-        elif (k2 == 18 or k2 == 20) and (k3 == 20 or k3 == 22):
-                 logger.error("connection should be sended: " + str(k2, k3))
-'''
+
+# Funzione per effettuare il mirroring degli angoli
+def mirror_angles(angle_results, angle_mirroring):
+    mirrored_results = {}
+
+    for angle_key, angle_data in angle_results.items():
+        # Converti la stringa chiave in una tupla
+        angle_key_tuple = eval(angle_key)
+
+        # Cerca se l'angolo corrente è presente nelle coppie di mirroring
+        mirrored_angle_key = None
+        for original, mirrored in angle_mirroring:
+            if angle_key_tuple == original:
+                mirrored_angle_key = mirrored
+                break           #torna al ciclo principale
+            elif angle_key_tuple == mirrored:
+                mirrored_angle_key = original
+                break
+
+        # Se esiste una corrispondenza, sostituisci la chiave con l'angolo mirroring
+        if mirrored_angle_key:
+            mirrored_key_str = str(mirrored_angle_key)
+            mirrored_results[mirrored_key_str] = angle_data
+        else:
+            # Se non esiste una corrispondenza, mantieni l'angolo originale
+            mirrored_results[angle_key] = angle_data
+    logger.info("mirrored: " + str(mirrored_results))
+    return mirrored_results
 
         
 
 # Funzione per trovare e aggiornare una connessione esistente
 def update_connection(connection, new_color, pose_connections):
     average_color = None
-    for conn, color, frame_number in pose_connections:
+    for conn, color, frame_number, _ in pose_connections:
         if conn == connection:
             average_color = math.ceil((color_priority[new_color] + color_priority[color]) / 2)
             priority_color[average_color]
