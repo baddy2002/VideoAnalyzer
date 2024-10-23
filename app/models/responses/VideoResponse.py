@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from pydantic import BaseModel
 from uuid import UUID
@@ -38,6 +39,20 @@ class Video(BaseModel, JSONResponse):
     fps: float
     width: float
     height: float
+
+    class Config:
+        orm_mode = True  # Permette a Pydantic di lavorare con SQLAlchemy
+        from_attributes=True
+
+
+
+class Elaboration(BaseModel, JSONResponse):
+    uuid: UUID
+    name: str
+    format: str
+    size: int
+    thumbnail: str
+    video_uuid: str
 
     class Config:
         orm_mode = True  # Permette a Pydantic di lavorare con SQLAlchemy

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, JSON, TIMESTAMP, String
+from sqlalchemy import Boolean, Column, Integer, JSON, TIMESTAMP, String
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.sql import func
@@ -13,3 +13,4 @@ class FrameAngle(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
     video_uuid = Column(UUID(as_uuid=True), nullable=False)
     keypoints = Column(JSON, nullable=False)
+    is_last_frame = Column(Boolean, nullable=False, default=False)

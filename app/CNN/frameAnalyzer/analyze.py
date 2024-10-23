@@ -6,7 +6,8 @@ import numpy as np
 import mediapipe as mp
 import logging
 import io, tempfile
-from app.services.TransactionalDbService import save_pose_angles_to_db, save_video_metadata, update_video_metadata
+from app.managements.mediapipe import NUM_FRAMES_PASSED
+from app.services.TransactionalDbService import save_pose_angles_to_db, save_video_metadata, update_frame_angle_metadata, update_video_metadata
 from app.CNN.frameAnalyzer.poseExtrapolation import extract_keypoints, filter_keypoints, calculate_pose_angles
 from app.CNN.frameAnalyzer.poseDraw import draw_skeleton
 import os
@@ -87,6 +88,7 @@ async def analyze_video_frames(temp_video1, extension1,  area, portions, video_n
         height = int(video1.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = video1.get(cv2.CAP_PROP_FPS)
 
+
         video_id = uuid.uuid4()  # Genera un UUID per il video
         video_data = {
             'uuid': video_id,
@@ -102,9 +104,6 @@ async def analyze_video_frames(temp_video1, extension1,  area, portions, video_n
         }
         await save_video_metadata(video_data)
 
-
-        
-        #output_video = cv2.VideoWriter(output_filename, fourcc, fps, (width, height))
         
 
         temp_frames_dir = os.path.join(settings.VIDEO_FOLDER, f'{video_name}_frames')
@@ -153,6 +152,11 @@ async def analyze_video_frames(temp_video1, extension1,  area, portions, video_n
 
         subprocess.run(ffmpeg_cmd, check=True)
 
+
+        frame_data = {
+            'is_last_frame': True,
+        }
+        await update_frame_angle_metadata(video_id, ((frame_number-1) // NUM_FRAMES_PASSED) * NUM_FRAMES_PASSED, frame_data)
         # Rimuovi i frame temporanei
         for frame_file in os.listdir(temp_frames_dir):
             os.remove(os.path.join(temp_frames_dir, frame_file))
