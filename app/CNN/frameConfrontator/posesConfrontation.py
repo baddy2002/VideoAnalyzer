@@ -2,7 +2,7 @@ import math
 import numpy as np
 import logging
 
-from managements.mediapipe import angle_mirroring, ANGLE_ERROR_TOLERANCE_THRESHOLD, ANGLE_WARNING_TOLERANCE_THRESHOLD, ANGLES_CONFIDENCE_TOLERANCE, ANGLE_TOLERANCE, ANGLE_CONFIDENCE_TOLERANCE, KEYPOINTS_CONFIDENCE_TOLERANCE
+from managements.mediapipe import angle_mirroring, ANGLE_ERROR_TOLERANCE_THRESHOLD, ANGLE_WARNING_TOLERANCE_THRESHOLD, ANGLE_CONFIDENCE_TOLERANCE 
 
 
 logger = logging.getLogger(__name__)

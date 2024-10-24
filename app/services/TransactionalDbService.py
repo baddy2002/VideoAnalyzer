@@ -4,6 +4,7 @@ import uuid
 from sqlalchemy import UUID
 from sqlalchemy.future import select
 
+from app.models.enums.ElaborationStatus import ElaborationStatus
 from config.settings import Settings
 from app.config.database import get_session
 from app.models.entities import Elaboration, FrameAngle, Video
@@ -100,31 +101,58 @@ async def update_video_metadata(uuid: UUID, video_data: dict):
             raise
 
 
-async def save_elaboration(elaboration_uuid: str, name : str = None, format: str= "mp4", size: int = 0, thumbnail: str = None, video_uuid: str =None, ):
+async def save_elaboration(
+    elaboration_uuid: str,
+    name: str = None,
+    format: str = "mp4",
+    size: int = 0,
+    thumbnail: str = None,
+    video_uuid: str = None,
+    status: ElaborationStatus = ElaborationStatus.CREATED
+):
     async with get_session() as session:
         try:
+            # Verifica se l'UUID è valido
             try:
-                # Verifica se l'UUID è valido
-                UUID(elaboration_uuid)  # Questo solleverà un ValueError se l'UUID non è valido
+                UUID(elaboration_uuid)  # Solleva ValueError se l'UUID non è valido
             except ValueError:
                 raise ValueError(f"L'UUID fornito '{elaboration_uuid}' non è valido.")
 
-
-            # Genera i dati per l'elaborazione
-            new_elaboration = Elaboration.Elaboration(
-                uuid=elaboration_uuid,
-                video_uuid=video_uuid,  
-                name=name,  # Nome generato, modificabile a piacere
-                format=format,  
-                size=size,  # Da aggiornare successivamente con il valore corretto
-                thumbnail=thumbnail  # Placeholder per la miniatura, da aggiornare successivamente
+            # Verifica se l'elaborazione esiste già nel database
+            existing_elaboration = await session.execute(
+                select(Elaboration.Elaboration).where(Elaboration.Elaboration.uuid == elaboration_uuid)
             )
+            existing_elaboration = existing_elaboration.scalar()
 
-            # Aggiungi la nuova elaborazione al database
-            session.add(new_elaboration)
+            if existing_elaboration:
+                # Se l'elaborazione esiste già, esegui un aggiornamento
+                existing_elaboration.name = name or existing_elaboration.name
+                existing_elaboration.format = format
+                existing_elaboration.size = size
+                existing_elaboration.thumbnail = thumbnail
+                existing_elaboration.video_uuid = video_uuid or existing_elaboration.video_uuid
+                existing_elaboration.status = status.value
+
+                logger.info(f"Elaborazione con UUID {elaboration_uuid} aggiornata.")
+            else:
+                # Se non esiste, crea una nuova elaborazione
+                new_elaboration = Elaboration.Elaboration(
+                    uuid=elaboration_uuid,
+                    name=name,
+                    format=format,
+                    size=size,
+                    thumbnail=thumbnail,
+                    video_uuid=video_uuid,
+                    status=str(status.value)
+                )
+                session.add(new_elaboration)
+                logger.info(f"Nuova elaborazione con UUID {elaboration_uuid} creata.")
+
+            # Commit della transazione
             await session.commit()
 
         except Exception as e:
-            await session.rollback()  # Rollback in caso di errori
+            # Rollback in caso di errori
+            await session.rollback()
             logger.error(f"Errore durante il salvataggio dell'elaborazione: {e}")
             raise

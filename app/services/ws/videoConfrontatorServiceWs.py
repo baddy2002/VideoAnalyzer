@@ -11,10 +11,11 @@ from app.CNN.frameConfrontator.posesConfrontation import frame_confrontation
 from app.config.database import get_session
 from app.config.settings import Settings
 from app.managements import prefixs
-from app.managements.mediapipe import num_frames_to_check
+from app.managements.mediapipe import FIRST_FRAME_NUMBER, num_frames_to_check
 from app.models.entities import ElaborationFrames, FrameAngle, Video
 from uuid import UUID
 
+from app.models.enums.ElaborationStatus import ElaborationStatus
 from app.services.TransactionalDbService import save_elaboration
 from app.services.movesDesignerService import create_elaboration_video, create_frame_image
 settings = Settings()
@@ -146,8 +147,20 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                 break
             
 
+            await save_elaboration(
+                elaboration_uuid=elaboration_uuid,
+                name='elaboration_'+str(elaboration_uuid), 
+                format="mp4", 
+                size=0, 
+                thumbnail='thumbnail_base64',
+                video_uuid=uuid,
+                status=ElaborationStatus.PROCESSING
+            )
+
+
             pose_connections = []
             i=0
+
             preference_frame_analysis = None
             for single_frame_analysis in frame_analysis_list:
                 if single_frame_analysis.frame_number == frame_number:
@@ -177,39 +190,47 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                     pose_connections = current_pose_connections.copy()
                         
             logger.info('Risultato comparazione angoli:' +str(pose_connections))
+            all_green = True
+            for conn in pose_connections:
+                if conn['color'] != '#00FF00':
+                    all_green=False
+            if preference_frame_analysis:
+                # Salva i dati nel database
+                if frame_number != FIRST_FRAME_NUMBER or all_green:
+                    logger.info("all connections are green...")
+                    async with get_session() as session:
+                        new_frame_confrontation = ElaborationFrames.ElaborationFrames(
+                            frame_number=frame_number,
+                            keypoints=keypoints,
+                            correct_keypoints=preference_frame_analysis.keypoints,  # Il keypoint corretto dal server
+                            connections=pose_connections,  # Risultato comparazione angoli
+                            elaboration_uuid=UUID(elaboration_uuid)  # UUID dell'elaborazione inviato dal client
+                        )
+                        session.add(new_frame_confrontation)
+                        await session.commit()
+                    temp_frames_dir = await create_frame_image(keypoints, frame_number, elaboration_uuid, video.height, video.width)
+                # Invia una risposta se necessario
+                pose_connections[0]['all_green'] = all_green
+                await websocket.send_json(pose_connections)
+                if preference_frame_analysis.is_last_frame:
+                    file_path, thumbnail_base64  = await create_elaboration_video(elaboration_uuid, fps=video.fps)
+                    await save_elaboration(
+                        elaboration_uuid=elaboration_uuid,
+                        name='elaboration_'+str(elaboration_uuid), 
+                        format="mp4", 
+                        size=os.path.getsize(os.path.join(settings.VIDEO_FOLDER, file_path)), 
+                        thumbnail=thumbnail_base64,
+                        video_uuid=uuid,
+                        status=ElaborationStatus.SAVED
+                    )
+                    for frame_file in os.listdir(temp_frames_dir):
+                        os.remove(os.path.join(temp_frames_dir, frame_file))
 
-
-            # Salva i dati nel database
-            async with get_session() as session:
-                new_frame_confrontation = ElaborationFrames.ElaborationFrames(
-                    frame_number=frame_number,
-                    keypoints=keypoints,
-                    correct_keypoints=preference_frame_analysis.keypoints,  # Il keypoint corretto dal server
-                    connections=pose_connections,  # Risultato comparazione angoli
-                    elaboration_uuid=UUID(elaboration_uuid)  # UUID dell'elaborazione inviato dal client
-                )
-                session.add(new_frame_confrontation)
-                await session.commit()
-            temp_frames_dir = await create_frame_image(keypoints, frame_number, elaboration_uuid, video.height, video.width)
-            # Invia una risposta se necessario
-            await websocket.send_json(pose_connections)
-            if preference_frame_analysis.is_last_frame:
-                file_path, thumbnail_base64  = await create_elaboration_video(elaboration_uuid, fps=video.fps)
-                await save_elaboration(
-                    elaboration_uuid=elaboration_uuid,
-                    name='elaboration_'+str(elaboration_uuid), 
-                    format="mp4", 
-                    size=os.path.getsize(os.path.join(settings.VIDEO_FOLDER, file_path)), 
-                    thumbnail=thumbnail_base64,
-                    video_uuid=uuid
-                )
-                for frame_file in os.listdir(temp_frames_dir):
-                    os.remove(os.path.join(temp_frames_dir, frame_file))
-
-                # Usa shutil.rmtree per rimuovere la directory temporanea
-                shutil.rmtree(temp_frames_dir)
-
-                break
+                    # Usa shutil.rmtree per rimuovere la directory temporanea
+                    shutil.rmtree(temp_frames_dir)
+                    await websocket.send_json({"message": "completed"})
+                    break
+            
         except WebSocketDisconnect:
             logger.info("WebSocket client disconnected")
             break  # Esci dal ciclo quando il client si disconnette

@@ -34,6 +34,7 @@ async def get_analysis(
     startRow: int = Query(0, ge=0),  
     pageSize: int = Query(10, gt=0),  
     order_by: str = Query("created_at DESC"),  # Ordinamento predefinito
+    obj_status: str =  Query('SAVED')
 ):
     
     
@@ -52,6 +53,10 @@ async def get_analysis(
                 query = query.order_by(getattr(Elaboration.Elaboration, column_name).desc())
             else:
                 query = query.order_by(getattr(Elaboration.Elaboration, column_name))
+
+        if obj_status:
+            count_query = count_query.where(Elaboration.Elaboration.status == obj_status.upper())
+            query = query.where(Elaboration.Elaboration.status == obj_status.upper())
 
         # Esegui la query con paginazione
         query = query.offset(startRow).limit(pageSize)

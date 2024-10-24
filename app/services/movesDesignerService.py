@@ -30,7 +30,7 @@ async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, 
             end_point = keypoints[end_idx]
 
             # Controlla la visibilità dei keypoints (0.0 è invisibile, 1.0 è completamente visibile)
-            if start_point['visibility'] > 0.5 and end_point['visibility'] > 0.5:
+            if start_point['visibility'] > 0.3 and end_point['visibility'] > 0.3:
                 start_x = int(start_point['x'] * width)
                 start_y = int(start_point['y'] * height)
                 end_x = int(end_point['x'] * width)
@@ -41,7 +41,7 @@ async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, 
 
     # Disegnare i keypoints sull'immagine
     for kp in keypoints:
-        if kp['visibility'] > 0.5:  # Disegna solo keypoints con visibilità > 0.5
+        if kp['visibility'] > 0.1:  # Disegna solo keypoints con visibilità > 0.5
             x = int(kp['x'] * width)
             y = int(kp['y'] * height)
             cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # Disegna un punto rosso

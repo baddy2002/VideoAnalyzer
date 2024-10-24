@@ -2,7 +2,8 @@ from sqlalchemy import Column, Double, Integer, String, BigInteger, TIMESTAMP, T
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.sql import func
-from app.config.database import Base  
+from app.config.database import Base
+from app.models.enums.ElaborationStatus import ElaborationStatus  
 
 class Elaboration(Base):
     __tablename__ = 'elaborations'
@@ -14,3 +15,4 @@ class Elaboration(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
     thumbnail = Column(Text, nullable=True)
     video_uuid = Column(String, nullable=False)
+    status =  Column(String, nullable=False, default=ElaborationStatus.CREATED.value)
