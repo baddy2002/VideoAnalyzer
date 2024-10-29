@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     
     # FrontEnd Application
     #FRONTEND_HOSTS: List[AnyHttpUrl] = [host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host]
-    FRONTEND_HOSTS: str= Field([host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host])
-    # POSTGRES Config
+    FRONTEND_HOSTS: List[str] = Field(
+        default_factory=lambda: [host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host]
+    )    # POSTGRES Config
     POSTGRES_HOST: str = os.environ.get("POSTGRES_HOST", "postgres-service")
     POSTGRES_PORT: int = int(os.environ.get("POSTGRES_PORT", 5432))
     POSTGRES_USER: str = os.environ.get("POSTGRES_USER", 'video_analysis')
