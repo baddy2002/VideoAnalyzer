@@ -1,6 +1,18 @@
 #!/bin/bash
 set -e
 
+# Funzione per verificare se il server è pronto
+check_postgres() {
+  until psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\q' 2>/dev/null; do
+    echo "PostgreSQL è ancora non disponibile - in attesa..."
+    sleep 2
+  done
+  echo "PostgreSQL è pronto."
+}
+
+# Chiama la funzione per verificare il server
+check_postgres
+
 # Controlla se il database ha tabelle e se sono vuote
 table_count=$(psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c \
 "SELECT SUM(n_live_tup) FROM pg_stat_user_tables;")

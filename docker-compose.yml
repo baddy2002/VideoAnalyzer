@@ -30,7 +30,19 @@ services:
     volumes:
         - ./static/db_backup:/var/lib/postgresql/db_backup
         - ./init:/docker-entrypoint-initdb.d/  
-    command: ["sh", "/docker-entrypoint-initdb.d/restore.sh"]
+
+  db_init:
+    image: postgres:latest
+    depends_on:
+      - postgres-service
+    environment:
+      POSTGRES_PASSWORD: video_analysis
+      POSTGRES_USER: video_analysis
+      POSTGRES_DB: video_analysis
+    volumes:
+      - ./static/db_backup:/var/lib/postgresql/db_backup
+      - ./init:/docker-entrypoint-initdb.d/
+    entrypoint: ["./restore_db.sh", "postgres-service", "/docker-entrypoint-initdb.d/restore_db.sh"]
 
   pgadmin4-service:
     image: dpage/pgadmin4
