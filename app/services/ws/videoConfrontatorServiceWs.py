@@ -183,11 +183,14 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                                 'frame_number': new_connection['frame_number'],
                                 'diff': new_connection['diff']
                             })
+                    else:
+                        pose_connections = current_pose_connections.copy()
                     # Se la connessione non esiste già, non fare nulla
 
                 # Imposta le connessioni iniziali solo alla prima iterazione
                 if i == 0:
                     pose_connections = current_pose_connections.copy()
+                i+=1
                         
             logger.info('Risultato comparazione angoli:' +str(pose_connections))
             all_green = True
@@ -208,9 +211,11 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                         )
                         session.add(new_frame_confrontation)
                         await session.commit()
-                    temp_frames_dir = await create_frame_image(keypoints, frame_number, elaboration_uuid, video.height, video.width)
+                    temp_frames_dir = await create_frame_image(keypoints, frame_number, elaboration_uuid, video.height, video.width, pose_connections)
                 # Invia una risposta se necessario
-                pose_connections[0]['all_green'] = all_green
+                
+                if pose_connections and pose_connections[0]:         
+                    pose_connections[0]['all_green'] = all_green
                 await websocket.send_json(pose_connections)
                 if preference_frame_analysis.is_last_frame:
                     file_path, thumbnail_base64  = await create_elaboration_video(elaboration_uuid, fps=video.fps)

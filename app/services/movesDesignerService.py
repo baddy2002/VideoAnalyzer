@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 settings = Settings()
 connections = list(mp_pose.POSE_CONNECTIONS)
 
-async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, width):
+async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, width, pose_connections=None):
     # Creiamo il path della cartella temporanea per salvare i frame
     temp_frames_dir = os.path.join(settings.VIDEO_FOLDER, f'{elaboration_uuid}_frames')
     os.makedirs(temp_frames_dir, exist_ok=True)
@@ -20,14 +20,20 @@ async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, 
     # Creiamo un'immagine nera (sfondo nero)
     frame = np.zeros((int(height), int(width), 3), dtype=np.uint8)
 
-
+    
     # Disegnare le connessioni tra i keypoints
     for connection in connections:
+        color=(0, 0,255)
         start_idx, end_idx = connection
-        if start_idx < len(keypoints) and end_idx < len(keypoints):
+        if pose_connections:
+            for item in pose_connections:
+                if item.get("connection") == connection:
+                    color = hex_to_bgr(item.get('color'))
+                    break
+        start_point = next((kp for kp in keypoints if kp['index'] == start_idx), None)
+        end_point = next((kp for kp in keypoints if kp['index'] == end_idx), None)
+        if start_point  and end_point:
             # Recupera le coordinate dei keypoints con il loro indice
-            start_point = keypoints[start_idx]
-            end_point = keypoints[end_idx]
 
             # Controlla la visibilità dei keypoints (0.0 è invisibile, 1.0 è completamente visibile)
             if start_point['visibility'] > 0.3 and end_point['visibility'] > 0.3:
@@ -35,16 +41,15 @@ async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, 
                 start_y = int(start_point['y'] * height)
                 end_x = int(end_point['x'] * width)
                 end_y = int(end_point['y'] * height)
-
-                # Disegna una linea rossa tra i keypoints
-                cv2.line(frame, (start_x, start_y), (end_x, end_y), (0, 0, 255), 5)
+                # Disegna una linea tra i keypoints
+                cv2.line(frame, (start_x, start_y), (end_x, end_y), color, 5)
 
     # Disegnare i keypoints sull'immagine
     for kp in keypoints:
-        if kp['visibility'] > 0.1:  # Disegna solo keypoints con visibilità > 0.1
+        if kp['visibility'] > 0.3:  # Disegna solo keypoints con visibilità > 0.3
             x = int(kp['x'] * width)
             y = int(kp['y'] * height)
-            cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # Disegna un punto rosso
+            cv2.circle(frame, (x, y), 3, (0, 0, 255), -1)  # Disegna un punto rosso
     
     # Salva l'immagine come PNG con il nome basato sul numero di frame
     frame_filename = os.path.join(temp_frames_dir, f"frame_{int(frame_number/5):06d}.png")
@@ -89,3 +94,12 @@ async def create_elaboration_video(elaboration_uuid, fps=30, thumbnail=None):
     subprocess.run(ffmpeg_cmd, check=True)
 
     return output_filename, thumbnail_base64
+
+
+
+def hex_to_bgr(hex_color):
+    # Rimuovi il simbolo "#" se presente
+    hex_color = hex_color.lstrip("#")
+    # Converti da RGB a BGR
+    bgr = tuple(int(hex_color[i:i+2], 16) for i in (4, 2, 0))
+    return bgr
