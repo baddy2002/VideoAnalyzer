@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
 # copy requirements file
 COPY ./requirements.txt /usr/srv/requirements.txt
 COPY ./setup.py /usr/srv/setup.py
+COPY ./app /usr/srv/app
 RUN apt-get install libpq-dev
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 #rendere un package
