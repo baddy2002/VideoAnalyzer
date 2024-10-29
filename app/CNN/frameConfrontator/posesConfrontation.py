@@ -93,11 +93,28 @@ def frame_confrontation(keypoints, angle_results, area, portions, frame_number, 
         # Aggiungi le connessioni alle pose
         new_color1 = update_connection((k1, k2), color, pose_connections)
         new_color2 = update_connection((k2, k3), color, pose_connections)
-        pose_connections.append({"connection": (k1, k2), "color": new_color1, "frame_number": frame_number, "diff": angle_diff})
-        pose_connections.append({"connection": (k2, k3), "color": new_color2, "frame_number": frame_number, "diff": angle_diff})
+        update_or_add_connection((k1, k2), new_color1, frame_number, angle_diff, pose_connections)
+        update_or_add_connection((k2, k3), new_color2, frame_number, angle_diff, pose_connections)
 
     return pose_connections
 
+def update_or_add_connection(connection, color, frame_number, angle_diff, pose_connections):
+    # Cerca se la connessione esiste già
+    for item in pose_connections:
+        if item["connection"] == connection:
+            # Se esiste, aggiorna i valori
+            item["color"] = color
+            item["frame_number"] = frame_number
+            item["diff"] = angle_diff
+            return
+
+    # Se la connessione non esiste, aggiungi un nuovo elemento
+    pose_connections.append({
+        "connection": connection,
+        "color": color,
+        "frame_number": frame_number,
+        "diff": angle_diff
+    })
 
 # Funzione per effettuare il mirroring degli angoli
 def mirror_angles(angle_results, angle_mirroring):

@@ -59,3 +59,14 @@ class Elaboration(BaseModel, JSONResponse):
         from_attributes=True
 
 
+class ElaborationFrame(BaseModel, JSONResponse):
+    uuid: UUID
+    frame_number: int
+    keypoints: list
+    connections: list
+    elaboration_uuid: UUID
+    correct_keypoints: list
+
+    class Config:
+        orm_mode = True  # Permette a Pydantic di lavorare con SQLAlchemy
+        from_attributes=True

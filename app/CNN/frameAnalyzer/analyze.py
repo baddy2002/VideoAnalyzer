@@ -35,7 +35,8 @@ async def single_frame_extimation(file1, area, portions, frame_number, video_uui
     # Decodifica le immagini
     image1 = cv2.imdecode(np.frombuffer(file_content1, np.uint8), cv2.IMREAD_COLOR)
 
-
+    logger.error("area: " + str(area))
+    logger.error("area: " + str(portions))
     angle_keypoints = filter_keypoints(area, portions)
 
     # To improve performance, optionally mark the image as not writeable to

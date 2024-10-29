@@ -15,4 +15,4 @@ class Elaboration(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
     thumbnail = Column(Text, nullable=True)
     video_uuid = Column(String, nullable=False)
-    status =  Column(String, nullable=False, default=ElaborationStatus.CREATED.value)
+    status =  Column(String, nullable=False, default=str(ElaborationStatus.CREATED.value))

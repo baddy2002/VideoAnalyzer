@@ -70,9 +70,8 @@ def extract_keypoints(image, angle_keypoints):
             angle_keypoints_unique.update(mapping[0])
         
         # Mantieni solo i keypoints filtrati
-        keypoints = [all_keypoints[idx] for idx in angle_keypoints_unique if idx < len(all_keypoints)]
+        keypoints = [kp for kp in all_keypoints if kp[0] in angle_keypoints_unique]
 
-    logger.info("calculated keypoints: " + str(keypoints))
     return keypoints
 
 

@@ -28,8 +28,9 @@ services:
     networks:
       - video-analysis
     volumes:
-          - ./static/db_backup:/var/lib/postgresql/db_backup
-          - ./init:/docker-entrypoint-initdb.d/  
+        - ./static/db_backup:/var/lib/postgresql/db_backup
+        - ./init:/docker-entrypoint-initdb.d/  
+    command: ["sh", "/docker-entrypoint-initdb.d/restore.sh"]
 
   pgadmin4-service:
     image: dpage/pgadmin4

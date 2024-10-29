@@ -11,7 +11,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from typing import Optional, List
 from app.models.requests import analyzeRequests
-from app.models.entities import Elaboration, Video, FrameAngle
+from app.models.entities import Elaboration, ElaborationFrames, Video, FrameAngle
 from app.models.responses import VideoResponse
 from app.CNN.frameAnalyzer import analyze
 from utils.FileUtils import FileUtils
@@ -102,6 +102,32 @@ async def get_single_video(
     except Exception as e:
         return VideoResponse.JsonServerErrorResponse('errore durante la creazione della risposta  '+ str(e))
 
+
+@video_confrontation_router.get('/a/{video_uuid}/{uuid}/{frame_number}', response_model=VideoResponse.ElaborationFrame)
+async def get_single_video(
+    video_uuid: UUID = Path(..., description="UUID del video da recuperare"),
+    uuid: UUID = Path(..., description="UUID dell'elaborazione specifica"),
+    frame_number = Path(..., description="number of frame of the elaboration"),
+):
+    try:
+        async with get_session() as session:
+            # Costruisci la query per cercare un singolo video
+            query = select(ElaborationFrames.ElaborationFrames).where(
+                ElaborationFrames.ElaborationFrames.elaboration_uuid == uuid,
+                ElaborationFrames.ElaborationFrames.frame_number == int(frame_number)
+                )
+            
+            # Esegui la query
+            result = await session.execute(query)
+            elaboration = result.scalars().first()
+            
+            # Se non viene trovato il video, ritorna un errore 404
+            if elaboration is None:
+                return VideoResponse.JsonObjectNotFoundResponse(entity="ElaborationFrames", uuid=uuid)
+            
+            return elaboration
+    except Exception as e:
+        return VideoResponse.JsonServerErrorResponse('errore durante la creazione della risposta  '+ str(e))
 
 @video_confrontation_router.get('/a/{video_filename}/streaming')
 async def get_video_stream(request: Request, video_filename: str):

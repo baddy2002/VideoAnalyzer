@@ -41,7 +41,7 @@ async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, 
 
     # Disegnare i keypoints sull'immagine
     for kp in keypoints:
-        if kp['visibility'] > 0.1:  # Disegna solo keypoints con visibilità > 0.5
+        if kp['visibility'] > 0.1:  # Disegna solo keypoints con visibilità > 0.1
             x = int(kp['x'] * width)
             y = int(kp['y'] * height)
             cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # Disegna un punto rosso
