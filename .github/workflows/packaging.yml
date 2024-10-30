@@ -39,14 +39,8 @@ jobs:
     - name: Build Docker Image
       run: |
         repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-        docker build -t ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} .
-        docker tag ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
-
-    - name: Push Docker Image to GitHub Packages
-      run: |
-        repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-        docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
-        docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
+        docker build -t gcr.io/YOUR_PROJECT_ID/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }} .
+        docker tag gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }} gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest
 
     - name: Push Docker Image to Google Container Registry
       run: |
