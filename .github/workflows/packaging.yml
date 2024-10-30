@@ -29,6 +29,31 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build Docker Image
+      run: |
+        repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        docker build -t ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} .
+        docker tag ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }} ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
+
+    - name: Push Docker Image to GitHub Packages
+      run: |
+        repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
+        docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
+
+    - name: Deploy Application with Docker Compose
+      run: |
+        docker compose down
+        docker compose up -d
+
+
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v1
       with:
