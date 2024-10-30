@@ -11,7 +11,7 @@ services:
     depends_on:
       - postgres-service
     ports:
-      - "8000:8080"
+      - "8000:8000"
     networks:
       - video-analysis
     volumes:
@@ -42,7 +42,7 @@ services:
     volumes:
       - ./static/db_backup:/var/lib/postgresql/db_backup
       - ./init:/docker-entrypoint-initdb.d/
-    entrypoint: ["./restore_db.sh", "postgres-service", "/docker-entrypoint-initdb.d/restore_db.sh"]
+    entrypoint: ["./docker-entrypoint-initdb.d/restore_db.sh", "postgres-service", "/docker-entrypoint-initdb.d/restore_db.sh"]
 
   pgadmin4-service:
     image: dpage/pgadmin4

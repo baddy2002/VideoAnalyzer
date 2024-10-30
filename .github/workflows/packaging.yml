@@ -38,23 +38,24 @@ jobs:
       run: |
           gcloud auth configure-docker gcr.io
 
-    - name: Build Docker Image
-      run: |
-        repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-        docker build -t gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }} .
-        docker tag gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }} gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest
+#    - name: Build Docker Image
+#      run: |
+#        repository_lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+#        docker build -t gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }} .
+#        docker tag gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }} gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest
 
-    - name: Push Docker Image to Google Container Registry
-      run: |
-        docker push gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }}
-        docker push gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest
-  
-    - name: Deploy Application in Gcloud VM instance
-      run: |
-        gcloud run deploy video-analzer-service \
-          --image gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest \
-          --platform managed \
-          --region us-west1 \
-          --allow-unauthenticated \
-          --memory 1Gi
+#    - name: Push Docker Image to Google Container Registry
+#     run: |
+#        docker push gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }}
+#        docker push gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest
+#  
+#    - name: Deploy Application in Gcloud VM instance
+#      run: |
+#        gcloud run deploy video-analzer-service \
+#          --image gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest \
+#          --platform managed \
+#          --region us-west1 \
+#          --allow-unauthenticated \
+#          --memory 1Gi
 
+#limiti di memoria di artifact e google run troppo piccoli 1 solo istanza vm 

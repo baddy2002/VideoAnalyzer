@@ -16,14 +16,14 @@ class Settings(BaseSettings):
     DEBUG: bool = bool(os.environ.get("DEBUG", False))
     
     # FrontEnd Application
-    FRONTEND_HOSTS: List[str] = Field(
-        default_factory=lambda: [host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host]
-    )    # POSTGRES Config
+    #FRONTEND_HOSTS: List[str] = Field(
+    #    default_factory=lambda: [host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host]
+    #)    # POSTGRES Config
     #FRONTEND_HOSTS: str= Field([host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host])
     # POSTGRES Config
-    POSTGRES_HOST: str = os.environ.get("POSTGRES_HOST", "4.169.127.59")
+    POSTGRES_HOST: str = os.environ.get("POSTGRES_HOST", "postgres-service")
     POSTGRES_PORT: int = int(os.environ.get("POSTGRES_PORT", 5432))
-    POSTGRES_USER: str = os.environ.get("POSTGRES_USER", 'postgres')
+    POSTGRES_USER: str = os.environ.get("POSTGRES_USER", 'video_analysis')
     POSTGRES_PASSWORD: str = os.environ.get("POSTGRES_PASSWORD", 'video_analysis')
     POSTGRES_DB: str = os.environ.get("POSTGRES_DB", 'video_analysis')
     DATABASE_URI: str =  f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
