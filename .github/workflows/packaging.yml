@@ -55,5 +55,6 @@ jobs:
           --image gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest \
           --platform managed \
           --region us-west1 \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --memory 1Gi
 
