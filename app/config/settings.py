@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     DEBUG: bool = bool(os.environ.get("DEBUG", False))
     
     # FrontEnd Application
-    #FRONTEND_HOSTS: List[AnyHttpUrl] = [host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host]
     FRONTEND_HOSTS: List[str] = Field(
         default_factory=lambda: [host for host in os.environ.get("FRONTEND_HOSTS", "http://localhost:4200").split(",") if host]
     )    # POSTGRES Config
