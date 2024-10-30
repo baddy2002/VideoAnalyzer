@@ -49,9 +49,10 @@ def create_application():
     return application
 
 
-
 app = create_application()
 
-
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 
