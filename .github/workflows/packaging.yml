@@ -48,8 +48,16 @@ jobs:
         docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:${{ steps.tag_version.outputs.new_tag }}
         docker push ghcr.io/${repository_lowercase}/video_analysis-fastapi:latest
 
-    - name: Deploy Application with Docker Compose
+    - name: Push Docker Image to Google Container Registry
       run: |
-        docker compose down
-        docker compose up -d
+        docker push gcr.io/videoanalyzer-440208/video_analysis_fastapi:${{ steps.tag_version.outputs.new_tag }}
+        docker push gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest
+  
+    - name: Deploy Application in Gcloud VM instance
+      run: |
+        gcloud run deploy video-analzer-service \
+          --image gcr.io/videoanalyzer-440208/video_analysis_fastapi:latest \
+          --platform managed \
+          --region us-west1 \
+          --allow-unauthenticated
 
