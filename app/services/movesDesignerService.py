@@ -60,41 +60,59 @@ async def create_frame_image(keypoints, frame_number, elaboration_uuid, height, 
 async def create_elaboration_video(elaboration_uuid, fps=30, thumbnail=None):
     # Path alla cartella dei frame
     temp_frames_dir = os.path.join(settings.VIDEO_FOLDER, f'{elaboration_uuid}_frames')
-    
+
     # Trova il primo frame disponibile
     try:
-        first_frame_path = os.path.join(temp_frames_dir, 'frame_000001.png')  # Modifica per usare il primo frame
-        if not os.path.exists(first_frame_path):
-            raise FileNotFoundError(f"First frame not found at {first_frame_path}")
+        # Elenca i file nella cartella e filtra solo quelli con estensione .png
+        frame_files = [f for f in os.listdir(temp_frames_dir) if f.endswith('.png')]
         
+        # Se non ci sono file, solleva un'eccezione
+        if not frame_files:
+            raise FileNotFoundError(f"No frame files found in {temp_frames_dir}")
+
+        # Ordina i file numericamente per estrarre il primo disponibile
+        frame_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))  # Estrae il numero dal nome del file
+        first_frame_path = os.path.join(temp_frames_dir, frame_files[0])  # Prende il primo file trovato
+
         # Carica il primo frame come immagine
         first_frame = cv2.imread(first_frame_path)
         
         # Genera la thumbnail a partire dal primo frame
         _, buffer = cv2.imencode('.jpeg', first_frame)
         thumbnail_base64 = base64.b64encode(buffer).decode('utf-8')
+
     except Exception as e:
         logger.error("Impossible to generate thumbnail for elaboration with uuid " + str(elaboration_uuid) + ": " + str(e))
         thumbnail_base64 = 'dummy_thumbnail'
 
-
     # Nome del file video finale
     output_filename = os.path.join(settings.VIDEO_FOLDER, f'elaboration_{elaboration_uuid}.mp4')
-    # Comando FFmpeg per unire i frame in un video
+
+    concat_file_path = os.path.join(temp_frames_dir, 'frames.txt')
+    with open(concat_file_path, 'w') as f:
+        for frame_file in frame_files:
+            f.write(f"file '{os.path.join(temp_frames_dir, frame_file)}'\n")
+
+    # Comando FFmpeg per unire i frame in un video utilizzando il file di testo
     ffmpeg_cmd = [
         'ffmpeg', '-y',  # Sovrascrivi il file di output
-        '-framerate', str((fps/5)),  # Imposta il frame rate
-        '-i', os.path.join(temp_frames_dir, 'frame_%06d.png'),  # Input dei frame in PNG
+        '-r', str(fps/5),  # Imposta il frame rate
+        '-f', 'concat',  # Specifica il formato di input come concat
+        '-safe', '0',  # Consente l'uso di percorsi assoluti
+        '-i', concat_file_path,  # Input del file di testo con l'elenco dei frame
         '-c:v', 'libx264',  # Codifica in H.264
         '-pix_fmt', 'yuv420p',  # Compatibilità con i browser
         output_filename
     ]
-    
-    # Esegui il comando FFmpeg
-    subprocess.run(ffmpeg_cmd, check=True)
+
+    try:
+        # Esegui il comando FFmpeg
+        subprocess.run(ffmpeg_cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error processing frames with FFmpeg: {str(e)}")
+        raise
 
     return output_filename, thumbnail_base64
-
 
 
 def hex_to_bgr(hex_color):
