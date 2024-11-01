@@ -17,9 +17,10 @@ logger = logging.getLogger(__name__)
 settings = Settings()
 
 async def create_tables():
+    logger.info("Inizio creazione delle tabelle...")
     async with async_engine.begin() as conn:  # Usa async_engine qui
         await conn.run_sync(Base.metadata.create_all)  # Crea le tabelle in modo asincrono
-
+    logger.info("Tabelle create con successo.")
 async def startup_event():
     # Crea le tabelle all'avvio
     await create_tables()
@@ -29,7 +30,7 @@ def create_application():
     application.add_middleware(
         CORSMiddleware,
         #allow_origins=settings.FRONTEND_HOSTS,  # domini consentiti
-        allow_origins=["*"],  # o il tuo dominio specifico
+        allow_origins=["*"],  
         allow_credentials=True,
         allow_methods=["*"],  # consente tutti i metodi (GET, POST, ecc.)
         allow_headers=["*"],  # consente tutti gli header
