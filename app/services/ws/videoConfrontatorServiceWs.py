@@ -65,11 +65,11 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                 continue
             except json.JSONDecodeError as var3:
                 logger.error(f"Error decoding JSON: {var3}")
-                await websocket.send_json({"error": "Invalid JSON format"+str(var3)})
+                await websocket.send_json({"error": "Invalid JSON format: "+str(var3)})
                 continue
             except Exception as e:
                 logger.error(f"Unexpected error: {e}")
-                await websocket.send_json({"error": "An unexpected error occurred"+str(e)})
+                await websocket.send_json({"error": "An unexpected error occurred: "+str(e)})
                 break
 
 
