@@ -27,9 +27,10 @@ services:
       - '5959:5432'
     networks:
       - video-analysis
-    volumes:
-        - ./static/db_backup:/var/lib/postgresql/db_backup
-        - ./init:/docker-entrypoint-initdb.d/  
+    #volumes:
+    
+    #    - ./static/db_backup:/var/lib/postgresql/db_backup
+    #    - ./init:/docker-entrypoint-initdb.d/  
 
   db_init:
     image: postgres:latest

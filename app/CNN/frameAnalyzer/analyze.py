@@ -35,19 +35,27 @@ async def single_frame_extimation(file1, area, portions, frame_number, video_uui
     # Decodifica le immagini
     image1 = cv2.imdecode(np.frombuffer(file_content1, np.uint8), cv2.IMREAD_COLOR)
 
-    logger.error("area: " + str(area))
-    logger.error("area: " + str(portions))
+    logger.debug("area: " + str(area))
+    logger.debug("area: " + str(portions))
     angle_keypoints = filter_keypoints(area, portions)
 
     # To improve performance, optionally mark the image as not writeable to
     # pass by reference.
     image1.flags.writeable = False           #reference: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/holistic.md            
     # Elenco dei keypoints
-    keypoints1 = extract_keypoints(image1, angle_keypoints)
+    keypoints1, barycenter_x, barycenter_y = extract_keypoints(image1, angle_keypoints)
     
     # Calcola la similarità delle pose
-    angles_results = calculate_pose_angles(keypoints1, angle_keypoints, area, portions)
-    await save_pose_angles_to_db(frame_number=frame_number, angles_results=angles_results,  video_uuid=video_uuid, keypoints=keypoints1)
+    angles_results,total_min_x, total_min_y, total_max_x, total_max_y, min_x_key, min_y_key, max_x_key, max_y_key = calculate_pose_angles(keypoints1, angle_keypoints, area, portions)
+    await save_pose_angles_to_db(frame_number=frame_number, angles_results=angles_results,
+                                video_uuid=video_uuid, keypoints=keypoints1,
+                                total_min_x=total_min_x, total_min_y=total_min_y,
+                                total_max_x=total_max_x, total_max_y=total_max_y,
+                                min_x_key=min_x_key, min_y_key=min_y_key, 
+                                max_x_key=max_x_key, max_y_key=max_y_key,
+                                barycenter_x=barycenter_x,
+                                barycenter_y=barycenter_y
+                                )
     # Stampa il punteggio di similarità
     logger.info(f'Risultato angoli: {angles_results}')
     image1.flags.writeable = True

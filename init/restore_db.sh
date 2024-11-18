@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 
 # Funzione per verificare se il server è pronto

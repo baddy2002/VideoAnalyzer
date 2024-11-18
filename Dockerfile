@@ -20,13 +20,13 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender-dev \
-    ffmpeg
+    ffmpeg \
+    libpq-dev
 
 # copy requirements file
 COPY ./requirements.txt /usr/srv/requirements.txt
 COPY ./setup.py /usr/srv/setup.py
 COPY ./app /usr/srv/app
-RUN apt-get install libpq-dev
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 #rendere un package
 RUN pip install -e .  

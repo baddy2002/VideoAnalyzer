@@ -26,6 +26,9 @@ def find_keypoint_by_id(keypoints, keypoint_id):
 
 def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_portions):
     angles_results = []
+    barycenter_x = 0
+    barycenter_y = 0
+    kp_checked = []
     # Scorri attraverso ogni angolo nel dizionario `angle_keypoints`
     for key, value in angle_keypoints.items():
         # Estrai i keypoints k1, k2, k3 dai nomi delle chiavi, ad esempio "(11, 12, 24)"
@@ -54,6 +57,19 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
                                     (kp1_3['x'], kp1_3['y']))
         # Prendi l'angolo e la confidenza da `angle_keypoints`
         angle_key = value['angle']
+        
+        if kp1_1['index'] not in kp_checked:
+            barycenter_x += kp1_1['x']
+            barycenter_y += kp1_1['y']
+            kp_checked.append(kp1_1['index'])
+        if kp1_2['index'] not in kp_checked:
+            barycenter_x += kp1_2['x']
+            barycenter_y += kp1_2['y']
+            kp_checked.append(kp1_2['index'])   
+        if kp1_3['index'] not in kp_checked:
+            barycenter_x += kp1_3['x']
+            barycenter_y += kp1_3['y']
+            kp_checked.append(kp1_3['index']) 
 
 
         # Calcola la differenza tra gli angoli
@@ -65,7 +81,13 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
             'angle_diff': angle_diff,
         })
     logger.info("calculated pose similarity: " + str(angles_results))
-    return angles_results
+    if len(kp_checked) > 0:
+        barycenter_x = barycenter_x/len(kp_checked)
+        barycenter_y = barycenter_y/len(kp_checked)
+    else :
+        barycenter_x=0
+        barycenter_y=0
+    return angles_results, barycenter_x, barycenter_y
 
 
 
@@ -73,7 +95,7 @@ def frame_confrontation(keypoints, angle_results, area, portions, frame_number, 
     # Calcola la differenza degli angoli
     if is_mirrored:
         angle_results = mirror_angles(angle_results, angle_mirroring)
-    angle_differences = calculate_pose_angles(keypoints1=keypoints, angle_keypoints=angle_results, selected_area=area, selected_portions=portions)
+    angle_differences, barycenter_x, barycenter_y = calculate_pose_angles(keypoints1=keypoints, angle_keypoints=angle_results, selected_area=area, selected_portions=portions)
 
     # Inizializza una lista per le connessioni delle pose
     pose_connections = []
@@ -96,7 +118,7 @@ def frame_confrontation(keypoints, angle_results, area, portions, frame_number, 
         update_or_add_connection((k1, k2), new_color1, frame_number, angle_diff, pose_connections)
         update_or_add_connection((k2, k3), new_color2, frame_number, angle_diff, pose_connections)
 
-    return pose_connections
+    return pose_connections, barycenter_x, barycenter_y
 
 def update_or_add_connection(connection, color, frame_number, angle_diff, pose_connections):
     # Cerca se la connessione esiste già

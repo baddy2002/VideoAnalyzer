@@ -15,7 +15,10 @@ settings = Settings()
 
 #<======================================DB save angles======================================>
 
-async def save_pose_angles_to_db(frame_number, angles_results, video_uuid, keypoints):
+async def save_pose_angles_to_db(frame_number, angles_results, video_uuid, keypoints,
+                                total_min_x, total_min_y, total_max_x, total_max_y, 
+                                min_x_key, min_y_key, max_x_key, max_y_key, barycenter_x,
+                                barycenter_y):
     angles_results_str_keys = {str(key): value for key, value in angles_results.items()}
     async with get_session() as session:
         try:
@@ -23,7 +26,17 @@ async def save_pose_angles_to_db(frame_number, angles_results, video_uuid, keypo
                 frame_number=frame_number,
                 angles_results=angles_results_str_keys,  # Salva tutto il dizionario come JSON
                 video_uuid=video_uuid,
-                keypoints=keypoints
+                keypoints=keypoints,
+                min_x=total_min_x, 
+                min_y=total_min_y, 
+                max_x=total_max_x, 
+                max_y=total_max_y, 
+                min_x_key=min_x_key, 
+                min_y_key=min_y_key, 
+                max_x_key=max_x_key, 
+                max_y_key=max_y_key,
+                barycenter_x=barycenter_x,
+                barycenter_y=barycenter_y
             )
             session.add(pose_angle)
             await session.commit()

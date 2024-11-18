@@ -14,7 +14,7 @@ from app.managements import prefixs
 from app.managements.mediapipe import FIRST_FRAME_NUMBER, num_frames_to_check
 from app.models.entities import ElaborationFrames, FrameAngle, Video
 from uuid import UUID
-
+from services import videoConfrontorService
 from app.models.enums.ElaborationStatus import ElaborationStatus
 from app.services.TransactionalDbService import save_elaboration
 from app.services.movesDesignerService import create_elaboration_video, create_frame_image
@@ -160,13 +160,35 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
 
             pose_connections = []
             i=0
-
+            total_min_x=1000
+            min_x_key=0
+            total_max_x=0
+            min_y_key=0
+            total_min_y=1000
+            max_x_key=0
+            total_max_y=0
+            max_y_key=0
             preference_frame_analysis = None
             for single_frame_analysis in frame_analysis_list:
+                #ricerca dei valori bounding box nei vari frame considerati
+                if single_frame_analysis.min_x < total_min_x:
+                    total_min_x = single_frame_analysis.min_x
+                    min_x_key = single_frame_analysis.min_x_key
+                if single_frame_analysis.min_y < total_min_y:
+                    total_min_y = single_frame_analysis.min_y
+                    min_y_key = single_frame_analysis.min_y_key
+                if single_frame_analysis.max_x > total_max_x:
+                    total_max_x = single_frame_analysis.max_x
+                    max_x_key = single_frame_analysis.max_x_key
+                if single_frame_analysis.max_y > total_max_y:
+                    total_max_y = single_frame_analysis.max_y
+                    max_y_key = single_frame_analysis.max_y_key
+                
                 if single_frame_analysis.frame_number == frame_number:
                     preference_frame_analysis = single_frame_analysis
+                
                 # Ottieni le connessioni per il frame corrente
-                current_pose_connections = frame_confrontation(keypoints, single_frame_analysis.angles_results, video.area, video.portions, frame_number, is_mirrored)
+                current_pose_connections, barycenter_x, barycenter_y = frame_confrontation(keypoints, single_frame_analysis.angles_results, video.area, video.portions, frame_number, is_mirrored)
 
                 for new_connection in current_pose_connections:
                     connection_key = new_connection['connection']
@@ -191,16 +213,30 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                 if i == 0:
                     pose_connections = current_pose_connections.copy()
                 i+=1
-                        
+            
+            delta_barycenter_x = abs(barycenter_x-preference_frame_analysis.barycenter_x) 
+            delta_barycenter_y = abs(barycenter_y-preference_frame_analysis.barycenter_y)
+
             logger.info('Risultato comparazione angoli:' +str(pose_connections))
-            all_green = True
-            for conn in pose_connections:
-                if conn['color'] != '#00FF00':
-                    all_green=False
+            in_box, all_green =videoConfrontorService.check_connection(pose_connections, 
+                                                                       keypoints, 
+                                                                       total_min_x, 
+                                                                       min_x_key,
+                                                                       total_max_x,
+                                                                       max_x_key,
+                                                                       total_min_y, 
+                                                                       min_y_key,
+                                                                       total_max_y,
+                                                                       max_y_key,
+                                                                       delta_barycenter_x=delta_barycenter_x,
+                                                                       delta_barycenter_y = delta_barycenter_y,
+                                                                       eps=0.1)
             if preference_frame_analysis:
                 # Salva i dati nel database
-                if frame_number != FIRST_FRAME_NUMBER or all_green:
-                    logger.info("all connections are green...")
+                
+                if in_box and (frame_number != FIRST_FRAME_NUMBER or all_green): #se è nel bounding box ed è tutto verde parte,
+                                                                                   #oppure  se è già partito 
+                    logger.info("all connections are green..." + str(all_green) + " in box: " + str(in_box))
                     async with get_session() as session:
                         new_frame_confrontation = ElaborationFrames.ElaborationFrames(
                             frame_number=frame_number,
@@ -216,6 +252,7 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                 
                 if pose_connections and pose_connections[0]:         
                     pose_connections[0]['all_green'] = all_green
+                    pose_connections[0]['in_box'] = in_box
                 await websocket.send_json(pose_connections)
                 if preference_frame_analysis.is_last_frame:
                     file_path, thumbnail_base64  = await create_elaboration_video(elaboration_uuid, fps=video.fps)

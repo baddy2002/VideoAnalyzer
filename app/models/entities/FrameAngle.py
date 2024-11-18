@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, JSON, TIMESTAMP, String
+from sqlalchemy import Boolean, Column, Integer, JSON, TIMESTAMP, String, Double
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.sql import func
@@ -14,3 +14,14 @@ class FrameAngle(Base):
     video_uuid = Column(UUID(as_uuid=True), nullable=False)
     keypoints = Column(JSON, nullable=False)
     is_last_frame = Column(Boolean, nullable=False, default=False)
+    min_x= Column(Double, nullable=False, default=1000)
+    min_x_key = Column(Integer, nullable=False, default=0)
+    min_y= Column(Double, nullable=False, default=1000)
+    min_y_key = Column(Integer, nullable=False, default=0)
+    max_x= Column(Double, nullable=False, default=0)
+    max_x_key = Column(Integer, nullable=False, default=0)
+    max_y= Column(Double, nullable=False, default=0)
+    max_y_key = Column(Integer, nullable=False, default=0)
+    barycenter_x = Column(Double, nullable=False, default=0)
+    barycenter_y = Column(Double, nullable=False, default=0)
+
