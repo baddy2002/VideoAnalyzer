@@ -38,17 +38,17 @@ def check_connection(   pose_connections,
     all_green = True
 
     logger.info(f'confronting min x: {keypoints[min_x_key]['x']} con: {total_min_x-delta_barycenter_x}')
-    if abs(keypoints[min_x_key]['x'] - total_min_x-delta_barycenter_x) > eps:
+    if abs(keypoints[min_x_key]['x'] - total_min_x) > eps+delta_barycenter_x:
         return False, all_green
     logger.info(f'confronting min y: {keypoints[min_y_key]['y']} con: { total_min_y-delta_barycenter_y}')
-    if abs(keypoints[min_y_key]['y'] - total_min_y-delta_barycenter_y) > eps:
+    if abs(keypoints[min_y_key]['y'] - total_min_y) > eps+delta_barycenter_y:
         return False, all_green
     
     logger.info(f'confronting max_x: {keypoints[max_x_key]['x']} con: {total_max_x+delta_barycenter_x}')
-    if abs(keypoints[max_x_key]['x'] - total_max_x+delta_barycenter_x) > eps:
+    if abs(keypoints[max_x_key]['x'] - total_max_x) > eps+delta_barycenter_x:
         return False, all_green
     logger.info(f'confronting max y : {keypoints[max_y_key]['y']} con: {total_max_y+delta_barycenter_y}')
-    if abs(keypoints[max_y_key]['y'] - total_max_y+delta_barycenter_y) > eps:
+    if abs(keypoints[max_y_key]['y'] - total_max_y) > eps+delta_barycenter_y:
         return False, all_green    
 
     for conn in pose_connections:
