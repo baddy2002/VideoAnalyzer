@@ -229,8 +229,7 @@ async def video_stream(websocket: WebSocket, elaboration_uuid: str):
                                                                        total_max_y,
                                                                        max_y_key,
                                                                        delta_barycenter_x=delta_barycenter_x,
-                                                                       delta_barycenter_y = delta_barycenter_y,
-                                                                       eps=0.1)
+                                                                       delta_barycenter_y = delta_barycenter_y)
             if preference_frame_analysis:
                 # Salva i dati nel database
                 
