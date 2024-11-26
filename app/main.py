@@ -5,7 +5,7 @@ import os
 
 from app.services.rs import videoAnalyzerServiceRs, videoConfrontatorServiceRs
 from app.services.ws import videoAnalyzerServiceWs, videoConfrontatorServiceWs
-from app.models.entities import FrameAngle, Video                                              #Sono da importare o non verranno aggiunte al db automaticamente
+from app.models.entities import FrameAngle, Video, RealtimeKeypoint                                        #Sono da importare o non verranno aggiunte al db automaticamente
 from app.config.database import async_engine, Base
 from app.config.settings import Settings
 

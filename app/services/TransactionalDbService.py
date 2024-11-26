@@ -7,7 +7,7 @@ from sqlalchemy.future import select
 from app.models.enums.ElaborationStatus import ElaborationStatus
 from config.settings import Settings
 from app.config.database import get_session
-from app.models.entities import Elaboration, FrameAngle, Video
+from app.models.entities import Elaboration, FrameAngle, RealtimeKeypoint, Video
 
 logger = logging.getLogger(__name__)
 settings = Settings()
@@ -168,4 +168,22 @@ async def save_elaboration(
             # Rollback in caso di errori
             await session.rollback()
             logger.error(f"Errore durante il salvataggio dell'elaborazione: {e}")
+            raise
+
+
+async def save_realtime_keypoints(elaboration_uuid: str,
+                                  keypoints: dict,
+                                  frame_number: int):
+    async with get_session() as session:
+        try:
+            real_keypoints = RealtimeKeypoint.RealtimeKeypoint(
+                frame_number=frame_number,
+                keypoints=keypoints,
+                elaboration_uuid=elaboration_uuid
+            )
+            session.add(real_keypoints)
+            await session.commit()
+        except Exception as e:
+            await session.rollback()  # Rollback in caso di errori
+            logger.error(f"Errore durante il salvataggio dei keypoints realtime a db: {e}")
             raise

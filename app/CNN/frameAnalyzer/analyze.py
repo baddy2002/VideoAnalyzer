@@ -46,7 +46,7 @@ async def single_frame_extimation(file1, area, portions, frame_number, video_uui
     keypoints1, barycenter_x, barycenter_y = extract_keypoints(image1, angle_keypoints)
     
     # Calcola la similarità delle pose
-    angles_results,total_min_x, total_min_y, total_max_x, total_max_y, min_x_key, min_y_key, max_x_key, max_y_key = calculate_pose_angles(keypoints1, angle_keypoints, area, portions)
+    angles_results, kp_used, total_min_x, total_min_y, total_max_x, total_max_y, min_x_key, min_y_key, max_x_key, max_y_key = calculate_pose_angles(keypoints1, angle_keypoints, area, portions)
     await save_pose_angles_to_db(frame_number=frame_number, angles_results=angles_results,
                                 video_uuid=video_uuid, keypoints=keypoints1,
                                 total_min_x=total_min_x, total_min_y=total_min_y,
@@ -59,7 +59,7 @@ async def single_frame_extimation(file1, area, portions, frame_number, video_uui
     # Stampa il punteggio di similarità
     logger.info(f'Risultato angoli: {angles_results}')
     image1.flags.writeable = True
-    draw_skeleton(image1, keypoints1, (0, 255,0))
+    draw_skeleton(image1, kp_used, (0, 255,0))
     
     # Codifica le immagini in memoria
     encoded, encoded_image = cv2.imencode('.jpg', image1)

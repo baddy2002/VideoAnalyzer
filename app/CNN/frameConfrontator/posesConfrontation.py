@@ -55,6 +55,8 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
         angle1 = calculate_angle((kp1_1['x'], kp1_1['y']), 
                                     (kp1_2['x'], kp1_2['y']), 
                                     (kp1_3['x'], kp1_3['y']))
+        if k1 == 2 and k2 == 3 and k3 == 7:
+            logger.info("dio animale : "+ str(k1+k2+k3) + " : " +str(angle1))
         # Prendi l'angolo e la confidenza da `angle_keypoints`
         angle_key = value['angle']
         
@@ -87,6 +89,7 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
     else :
         barycenter_x=0
         barycenter_y=0
+
     return angles_results, barycenter_x, barycenter_y
 
 
@@ -113,11 +116,12 @@ def frame_confrontation(keypoints, angle_results, area, portions, frame_number, 
             color = "#00FF00"
 
         # Aggiungi le connessioni alle pose
-        new_color1 = update_connection((k1, k2), color, pose_connections)
-        new_color2 = update_connection((k2, k3), color, pose_connections)
-        update_or_add_connection((k1, k2), new_color1, frame_number, angle_diff, pose_connections)
-        update_or_add_connection((k2, k3), new_color2, frame_number, angle_diff, pose_connections)
-
+        new_color1, angle_diff1 = update_connection((k1, k2), color, angle_diff, pose_connections)
+        new_color2, angle_diff2 = update_connection((k2, k3), color, angle_diff, pose_connections)
+        update_or_add_connection((k1, k2), new_color1, frame_number, angle_diff1, pose_connections)
+        update_or_add_connection((k2, k3), new_color2, frame_number, angle_diff2, pose_connections)
+    logger.info("pc:" + str(pose_connections))
+    logger.info("barycenters:" + str(barycenter_x))
     return pose_connections, barycenter_x, barycenter_y
 
 def update_or_add_connection(connection, color, frame_number, angle_diff, pose_connections):
@@ -169,13 +173,15 @@ def mirror_angles(angle_results, angle_mirroring):
         
 
 # Funzione per trovare e aggiornare una connessione esistente
-def update_connection(connection, new_color, pose_connections):
+def update_connection(connection, new_color, new_diff, pose_connections):
     average_color = None
-    for conn, color, frame_number, _ in pose_connections:
+    
+    for conn, color, frame_number, diff in pose_connections:
         if conn == connection:
             average_color = math.ceil((color_priority[new_color] + color_priority[color]) / 2)
-            priority_color[average_color]
-    return new_color
+            new_color = priority_color[average_color]
+            new_diff = new_diff+ diff /2.0
+    return new_color, new_diff
 
 
 color_priority = {

@@ -117,7 +117,7 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
     max_x_key=0
     total_max_y=0
     max_y_key=0
-
+    kp_used=[]
     
 
     for (k1, k2, k3), area, portion in angle_keypoints:
@@ -162,6 +162,9 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
             # Se la confidenza ottenuta dalla visione dell'angolo nel video e dall'interesse per esso non è sufficiente non lo considero
             if conf < ANGLE_CONFIDENCE_TOLERANCE:
                 continue
+            kp_used.append(kp1_1)
+            kp_used.append(kp1_2)
+            kp_used.append(kp1_3)
             # Salva il risultato per questo angolo
             angles_results[(k1, k2, k3)] = {
                 'angle': angle1,
@@ -170,4 +173,4 @@ def calculate_pose_angles(keypoints1, angle_keypoints, selected_area, selected_p
                 'portion': portion,
             }
     logger.info("calculated pose similarity: " + str(angles_results))
-    return (angles_results, total_min_x, total_min_y, total_max_x, total_max_y, min_x_key, min_y_key, max_x_key, max_y_key)
+    return (angles_results, kp_used, total_min_x, total_min_y, total_max_x, total_max_y, min_x_key, min_y_key, max_x_key, max_y_key)

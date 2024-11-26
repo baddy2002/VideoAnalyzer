@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 from sqlite3 import DatabaseError
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -11,7 +12,6 @@ from app.CNN.frameConfrontator.posesConfrontation import frame_confrontation
 from app.config.database import get_session
 from app.config.settings import Settings
 from app.managements import prefixs
-from app.managements.mediapipe import FIRST_FRAME_NUMBER, num_frames_to_check
 from app.models.entities import ElaborationFrames, FrameAngle, Video
 from uuid import UUID
 
@@ -54,8 +54,31 @@ def check_connection(   pose_connections,
         return False, all_green    
 
     for conn in pose_connections:
-        if conn['color'] != '#00FF00':
+        if conn['color'] != '#00FF00' and conn['color'] != '#99FF00':
             all_green=False
 
     return True, all_green
     
+
+# Funzione per normalizzare una connessione (ordinare gli indici)
+def normalize_connection(connection):
+    return tuple(sorted(connection))
+
+
+
+def update_connection_color_and_difference(connection1, connection2):
+    average_color = math.ceil((color_priority[connection1['color']] + color_priority[connection2['color']]) / 2)
+    new_color = priority_color[average_color]        
+    new_diff = connection1['diff']+ connection2['diff'] /2.0
+    return new_color, new_diff
+
+
+
+color_priority = {
+    "#00FF00": 0,  # Green
+    "#99FF00": 1,  # Green-Yellow (via di mezzo)
+    "#FFFF00": 2,  # Yellow
+    "#FFA500": 3,  # Orange
+    "#FF0000": 4   # Red
+}
+priority_color = {v: k for k, v in color_priority.items()}

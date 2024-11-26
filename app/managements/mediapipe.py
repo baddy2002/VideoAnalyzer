@@ -137,8 +137,9 @@ SIMILARITY_THRESHOLD = 10
 ANGLE_ERROR_TOLERANCE_THRESHOLD=20
 ANGLE_WARNING_TOLERANCE_THRESHOLD=15
 
-num_frames_to_check = 4
+num_frames_to_check = 20      #2x+1 frame modello, attuale, x prima e x dopo
 NUM_FRAMES_PASSED = 5
-FIRST_FRAME_NUMBER = 25
+FIRST_FRAME_NUMBER = 65
 
-DTW_REALTIME_FRAME_NUMBER = 5
+DTW_REALTIME_FRAMES_NUMBER = 10     #considera gli ultimi x frame realtime
+DTW_REALTIME_WINDOW_SIZE = 5        #finestra di frame di differenza che possono avere frame realtime e modello per essere comparati
