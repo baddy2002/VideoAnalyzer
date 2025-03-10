@@ -4,7 +4,7 @@ Questo progetto è un esempio di come creare un circuito quantistico con IBM qua
 
 
 Vedi altri miei progetti relativi a sviluppo Backend:
-- [Quantum](https://Baddy2002.github.io/ApiDesign) - Progetti Backend.
+- [Backend](https://Baddy2002.github.io/ApiDesign) - Progetti Backend.
 
 
 video analyzer with mediapipe and fastapi, this website implement REST and WebSocket API for realtime communication with the Angular Frontend.
