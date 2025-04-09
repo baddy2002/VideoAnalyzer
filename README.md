@@ -1,7 +1,5 @@
 # VideoAnalyzer Project
 
-Questo progetto è un esempio di come creare un circuito quantistico con IBM quantum composer
-
 
 Vedi altri miei progetti relativi a sviluppo FullStack:
 - [Backend](https://Baddy2002.github.io/FullStack) - Progetti FullStack.
