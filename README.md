@@ -3,8 +3,8 @@
 Questo progetto è un esempio di come creare un circuito quantistico con IBM quantum composer
 
 
-Vedi altri miei progetti relativi a sviluppo Backend:
-- [Backend](https://Baddy2002.github.io/ApiDesign) - Progetti Backend.
+Vedi altri miei progetti relativi a sviluppo FullStack:
+- [Backend](https://Baddy2002.github.io/FullStack) - Progetti FullStack.
 
 
 video analyzer with mediapipe and fastapi, this website implement REST and WebSocket API for realtime communication with the Angular Frontend.
